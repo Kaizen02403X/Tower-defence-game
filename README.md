@@ -4,13 +4,17 @@ Last Light is a browser-based tower defense game. The visuals, animation, and ga
 
 ## Run
 
-Open `static/index.html` in a browser. If you prefer to run it through a local server, start this from the project folder:
+Play the game online at **[Last Light — Tower Defense](https://kaizen02403x.github.io/Tower-defence-game/)** once the GitHub Pages deployment completes.
+
+To run the game locally, open `static/index.html` in a browser. If you prefer to run it through a local server, start this from the project folder:
 
 ```bash
 python3 server.py
 ```
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser. Stop the server with **Ctrl+C**.
+
+To let friends play from Macs on the same Wi-Fi network, keep the server running and share your Mac's local IP address with them. On macOS, find it in **System Settings → Wi-Fi → Details**, then have them open `http://YOUR-MAC-IP:8000` in a browser. If macOS asks whether Python can accept incoming connections, allow it. This shares the game only on your local network; friends on other networks need a deployed version.
 
 ## Play
 

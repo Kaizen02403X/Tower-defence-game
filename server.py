@@ -86,8 +86,9 @@ class GameHandler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    server = ThreadingHTTPServer(("127.0.0.1", 8000), GameHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", 8000), GameHandler)
     print("Last Light is ready at http://127.0.0.1:8000")
+    print("To play from another device on your Wi-Fi, use this Mac's IP address on port 8000.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
