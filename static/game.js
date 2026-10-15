@@ -5,16 +5,32 @@
   const ctx = canvas.getContext("2d", { alpha: false });
   const W = 960;
   const H = 600;
-  const route = [
-    [-24, 145], [205, 145], [205, 365], [455, 365],
-    [455, 173], [705, 173], [705, 455], [984, 455],
-  ];
+  const maps = {
+    meadow: { name: "Verdant Crossing", stars: 1, scale: 1, tint: "#294b46", route: [[-24, 145], [205, 145], [205, 365], [455, 365], [455, 173], [705, 173], [705, 455], [984, 455]] },
+    ember: { name: "Ember Pass", stars: 2, scale: 1.05, tint: "#604238", route: [[-24, 270], [165, 270], [165, 105], [385, 105], [385, 470], [610, 470], [610, 190], [820, 190], [820, 455], [984, 455]] },
+    frostfall: { name: "Frostfall Ridge", stars: 3, scale: 1.1, tint: "#35515a", route: [[-24, 78], [285, 78], [285, 275], [85, 275], [85, 505], [520, 505], [520, 130], [760, 130], [760, 455], [984, 455]] },
+    abyss: { name: "Abyssal Reach", stars: 4, scale: 1.16, tint: "#39334e", route: [[-24, 455], [220, 455], [220, 155], [430, 155], [430, 435], [660, 435], [660, 105], [850, 105], [850, 455], [984, 455]] },
+    citadel: { name: "The Shattered Citadel", stars: 5, scale: 1.23, tint: "#55433b", route: [[-24, 300], [155, 300], [155, 95], [365, 95], [365, 305], [575, 305], [575, 500], [790, 500], [790, 455], [984, 455]] },
+  };
+  const modes = {
+    easy: { name: "Easy", waves: 30, scale: .72, reward: 25, description: "A gentler defense with fewer, slower enemies." },
+    intermediate: { name: "Intermediate", waves: 35, scale: 1, reward: 35, description: "A balanced campaign with steadily growing threats." },
+    molten: { name: "Molten", waves: 35, scale: 1.28, reward: 42, description: "Faster assaults and tougher enemies test your defenses." },
+    void: { name: "Void", waves: 40, scale: 1.58, reward: 50, description: "Armored, hidden enemies and punishing boss waves." },
+    frost: { name: "Frost", waves: 50, scale: 1.9, reward: 65, description: "The harshest campaign: relentless, swift, resilient enemies." },
+  };
+  const modeOrder = ["easy", "intermediate", "molten", "void", "frost"];
   const towers = {
-    ranger: { name: "Sunshot", role: "QUICK · PRECISE", icon: "➶", cost: 65, range: 142, cooldown: .58, damage: 14, color: "#f3cf7b", shot: "arrow" },
-    cannon: { name: "Blastforge", role: "HEAVY · SPLASH", icon: "✹", cost: 115, range: 128, cooldown: 1.4, damage: 37, color: "#ff946e", shot: "shell", splash: 61 },
-    frost: { name: "Rimecaller", role: "CHILL · SLOW", icon: "❄", cost: 85, range: 136, cooldown: 1.08, damage: 8, color: "#81daeb", shot: "frost", slow: .43, splash: 33 },
-    tesla: { name: "Stormcoil", role: "CHAIN · LIGHTNING", icon: "ϟ", cost: 145, range: 118, cooldown: 1.3, damage: 22, color: "#c7a4ff", shot: "lightning", chains: 3 },
-    summoner: { name: "Soulweaver", role: "SUMMON · SKELETONS", icon: "💀", cost: 155, range: 172, cooldown: 2.1, damage: 7, color: "#b9a0ff", shot: "summon" },
+    ranger: { name: "Sunshot", role: "QUICK · PRECISE", icon: "➶", cost: 65, range: 142, cooldown: .58, damage: 14, color: "#f3cf7b", shot: "arrow", limit: 15 },
+    cannon: { name: "Blastforge", role: "HEAVY · SPLASH", icon: "✹", cost: 115, range: 128, cooldown: 1.4, damage: 37, color: "#ff946e", shot: "shell", splash: 61, limit: 10 },
+    frost: { name: "Rimecaller", role: "CHILL · SLOW", icon: "❄", cost: 85, range: 136, cooldown: 1.08, damage: 8, color: "#81daeb", shot: "frost", slow: .43, splash: 33, limit: 12 },
+    tesla: { name: "Stormcoil", role: "CHAIN · LIGHTNING", icon: "ϟ", cost: 145, range: 118, cooldown: 1.3, damage: 22, color: "#c7a4ff", shot: "lightning", chains: 3, limit: 12 },
+    summoner: { name: "Soulweaver", role: "SUMMON · SKELETONS", icon: "💀", cost: 155, range: 172, cooldown: 2.1, damage: 7, color: "#b9a0ff", shot: "summon", limit: 10 },
+    elementalist: { name: "Elementalist Beacon", role: "FIRE · ICE · AREA CONTROL", icon: "✺", cost: 185, range: 150, cooldown: .95, damage: 19, color: "#f2a76a", shot: "element", limit: 10, gemCost: 25, premium: true },
+    laser: { name: "Laser Array Turret", role: "BEAM · PRISM · CHAIN", icon: "⌁", cost: 205, range: 178, cooldown: .72, damage: 16, color: "#ff687e", shot: "laser", limit: 12, gemCost: 30, premium: true },
+    alchemist: { name: "Alchemist Launcher", role: "TOXIN · ACID · AREA CONTROL", icon: "⚗", cost: 175, range: 160, cooldown: 1.25, damage: 24, color: "#77e28f", shot: "alchemist", limit: 12, gemCost: 25, premium: true },
+    void: { name: "Void Rift Spire", role: "GRAVITY · RIFT · DISTORTION", icon: "◉", cost: 220, range: 165, cooldown: 1.45, damage: 34, color: "#b783ff", shot: "void", limit: 10, gemCost: 35, premium: true },
+    overcharge: { name: "Tesla Overcharge Spire", role: "PLASMA · CHAINS · STATIC FIELD", icon: "ϟ", cost: 230, range: 145, cooldown: 1.12, damage: 21, color: "#69caff", shot: "overcharge", limit: 10, gemCost: 35, premium: true },
   };
   const enemies = {
     shade: { hp: 42, speed: 51, radius: 11, reward: 10, color: "#c18ee0" },
@@ -40,20 +56,24 @@
     { name: "Boreas, The Tempest King", category: "MYTHICAL & ELEMENTAL", color: "#83d8f4", symbol: "❄", trait: "KILLING BLIZZARD", ability: "frost", description: "An elemental lord whose blizzards slow nearby defenders." },
     { name: "Kalypso, The Deep Sovereign", category: "MYTHICAL & ELEMENTAL", color: "#59c7bd", symbol: "♆", trait: "ABYSSAL TIDE", ability: "tidal", description: "A kraken lord who floods the road with extra attackers." },
   ];
-  const segments = route.slice(1).map((end, index) => {
+  let selectedMode = "easy";
+  let currentMode = "easy";
+  let currentMapKey = "meadow";
+  let selectedMapKey = "meadow";
+  let route = maps.meadow.route;
+  let segments = route.slice(1).map((end, index) => {
     const start = route[index];
     const dx = end[0] - start[0];
     const dy = end[1] - start[1];
     return { start, dx, dy, length: Math.hypot(dx, dy) };
   });
-  const routeLength = segments.reduce((total, segment) => total + segment.length, 0);
+  let routeLength = segments.reduce((total, segment) => total + segment.length, 0);
+  const bossWavesForMode = (modeKey = currentMode) => [...new Set([15, 20, 30, modes[modeKey].waves])].filter((n) => n <= modes[modeKey].waves).sort((a, b) => a - b);
   const bossForWave = (waveNumber) => {
-    if (waveNumber >= 100) return bosses[0];
-    if (waveNumber >= 95) return bosses[1];
-    if (waveNumber >= 90) return bosses[2];
-    return bosses[Math.floor(waveNumber / 5) - 1];
+    const index = Math.max(0, bossWavesForMode().indexOf(waveNumber));
+    return bosses[index % bosses.length];
   };
-  const upcomingBossWave = (currentWave) => currentWave >= 100 ? null : Math.min(100, Math.floor(currentWave / 5) * 5 + 5);
+  const upcomingBossWave = (currentWave) => bossWavesForMode().find((bossWave) => bossWave > currentWave) ?? null;
   const ui = {
     lives: document.querySelector("#lives"),
     gold: document.querySelector("#gold"),
@@ -76,11 +96,14 @@
     speedButton: document.querySelector("#speed-button"),
     pauseButton: document.querySelector("#pause-button"),
     soundButton: document.querySelector("#sound-button"),
+    menuButton: document.querySelector("#menu-button"),
+    shopButton: document.querySelector("#shop-button"),
+    gemCount: document.querySelector("#gem-count"),
+    shopGems: document.querySelector("#shop-gems"),
+    campaignLabel: document.querySelector("#campaign-label"),
+    bossCount: document.querySelector("#boss-count"),
     overlay: document.querySelector("#game-overlay"),
-    overlayEyebrow: document.querySelector("#overlay-eyebrow"),
-    overlayTitle: document.querySelector("#overlay-title"),
-    overlayCopy: document.querySelector("#overlay-copy"),
-    overlayButton: document.querySelector("#overlay-button"),
+    overlayContent: document.querySelector("#overlay-content"),
     bossAlert: document.querySelector("#boss-alert"),
   };
   let seed = 18374;
@@ -113,8 +136,9 @@
   const terrain = world.getContext("2d");
 
   function drawStaticWorld() {
+    terrain.clearRect(0, 0, W, H);
     const ground = terrain.createLinearGradient(0, 0, W, H);
-    ground.addColorStop(0, "#33584c");
+    ground.addColorStop(0, maps[currentMapKey].tint);
     ground.addColorStop(.48, "#294b46");
     ground.addColorStop(1, "#203d40");
     terrain.fillStyle = ground;
@@ -260,13 +284,20 @@
   let lives = 20;
   let wave = 0;
   let bestWave = 0;
-  let state = "intro";
+  let state = "menu";
   let pausedFrom = "build";
+  let shopReturnState = "menu";
+  let returnToCampaign = false;
   let selectedType = null;
   let selectedTower = null;
+  let gems = 0;
+  let unlockedTowers = new Set();
+  let campaignRewarded = false;
+  let settingsReducedMotion = false;
   let placedTowers = [];
   let activeEnemies = [];
   let projectiles = [];
+  let damageFields = [];
   let summonedSkeletons = [];
   let particles = [];
   let effects = [];
@@ -291,8 +322,15 @@
 
   try {
     bestWave = Math.max(0, Number(localStorage.getItem("last-light-best-wave")) || 0);
+    gems = Math.max(0, Number(localStorage.getItem("last-light-gems")) || 0);
+    const savedUnlocks = JSON.parse(localStorage.getItem("last-light-unlocked-towers") || "[]");
+    if (Array.isArray(savedUnlocks)) {
+      savedUnlocks.filter((key) => towers[key]?.premium).forEach((key) => unlockedTowers.add(key));
+    }
+    soundEnabled = localStorage.getItem("last-light-sound") !== "off";
+    settingsReducedMotion = localStorage.getItem("last-light-reduced-effects") === "true";
   } catch (error) {
-    console.warn("Could not read the saved best wave.", error);
+    console.warn("Could not read saved game progress or settings.", error);
   }
 
   function setMessage(text) {
@@ -430,6 +468,7 @@
   }
 
   function addBurst(x, y, tint, count = 8, speed = 100) {
+    if (settingsReducedMotion) count = Math.ceil(count * .35);
     for (let i = 0; i < count; i++) {
       const angle = random() * Math.PI * 2;
       const velocity = speed * (.35 + random() * .65);
@@ -442,16 +481,18 @@
   }
 
   function addEffect(type, x, y, tint, radius = 24, duration = .3) {
+    if (settingsReducedMotion && ["impact", "pulse", "muzzle"].includes(type)) return;
     effects.push({ type, x, y, color: tint, radius, life: duration, maxLife: duration });
   }
 
   function makeEnemy(index, boss = false) {
     const id = nextEntityId++;
     const [x, y] = positionOnRoute(0);
+    const enemyScale = modes[currentMode].scale * maps[currentMapKey].scale;
     if (boss) {
       const info = bossForWave(wave);
-      const armor = info.ability === "armor" ? .38 : info.ability === "shield" ? .16 : info.ability === "overload" ? .1 : 0;
-      const hp = Math.round(760 + wave * 40 + wave ** 2 * .55);
+      const armor = (info.ability === "armor" ? .38 : info.ability === "shield" ? .16 : info.ability === "overload" ? .1 : 0) + Math.max(0, modes[currentMode].scale - 1) * .08;
+      const hp = Math.round((760 + wave * 40 + wave ** 2 * .55) * enemyScale);
       return {
         id, name: info.name, category: info.category, description: info.description,
         boss: true, ability: info.ability, color: info.color, symbol: info.symbol,
@@ -468,30 +509,36 @@
           : index % 7 === 1 && wave >= 3 ? "brute" : "shade";
     const stats = enemies[type];
     const elapsedWaves = Math.max(0, wave - 1);
-    const hp = Math.ceil(stats.hp * (1 + elapsedWaves * .12 + elapsedWaves ** 2 * .0015));
+    const hp = Math.ceil(stats.hp * (1 + elapsedWaves * .12 + elapsedWaves ** 2 * .0015) * enemyScale);
+    const shielded = wave >= 8 && wave % 4 === 0 && (currentMode === "void" || currentMode === "frost");
+    const hidden = wave >= 12 && wave % 6 === 0 && (currentMode === "void" || currentMode === "frost");
     return {
-      id, type, ...stats, hp, maxHp: hp, speed: stats.speed + Math.min(wave, 15),
+      id, type, ...stats, hp, maxHp: hp,
+      armor: shielded ? .3 : 0, shielded, hidden,
+      speed: stats.speed + Math.min(wave, 15) * (.7 + modes[currentMode].scale * .3) + maps[currentMapKey].stars * .8,
       progress: 0, x, y, slowUntil: 0, slowFactor: 1, attackTimer: 0, meleeTimer: 0,
     };
   }
 
   function startWave() {
-    if (state !== "build" || wave >= 100) return;
+    if (state !== "build" || wave >= modes[currentMode].waves) return;
     autoWaveTimer = 0;
     state = "wave";
     wave++;
-    const count = 7 + wave * 2;
-    spawnQueue = Array.from({ length: count }, (_, index) => ({ index, boss: wave % 5 === 0 && index === count - 2 }));
+    const count = Math.ceil(7 + wave * 1.8);
+    const isBossWave = bossWavesForMode().includes(wave);
+    spawnQueue = Array.from({ length: count }, (_, index) => ({ index, boss: isBossWave && index === count - 2 }));
     spawnTimer = .25;
-    const boss = wave % 5 === 0 ? bossForWave(wave) : null;
-    setMessage(boss ? `${boss.name} approaches. ${boss.trait} — adjust your defenses!` : "Enemies incoming. Watch enemy types and cover the road.");
+    const boss = isBossWave ? bossForWave(wave) : null;
+    setMessage(boss ? `${boss.name} approaches. ${boss.trait} — adjust your defenses!` : "Enemies incoming. Watch for faster, shielded, and hidden threats.");
     uiDirty = true;
   }
 
   function applyDamage(enemy, amount, slow = 0, sourceType = "ranger") {
     if (enemy.dead) return;
     if (enemy.boss && enemy.phaseUntil > gameTime) return;
-    const armor = enemy.boss ? enemy.armor + (enemy.shieldUntil > gameTime ? .32 : 0) : enemy.type === "brute" ? .08 : 0;
+    const baseArmor = enemy.boss ? enemy.armor + (enemy.shieldUntil > gameTime ? .32 : 0) : (enemy.armor || (enemy.type === "brute" ? .08 : 0));
+    const armor = Math.max(0, baseArmor - (enemy.acidUntil > gameTime ? .15 : 0));
     enemy.hp -= amount * (1 - Math.min(.75, armor));
     playSound(sourceType === "tesla" ? "tesla" : sourceType === "frost" ? "frost" : sourceType === "cannon" ? "cannon" : sourceType === "summoner" ? "skeletonAttack" : "damage");
     if (slow > 0) {
@@ -622,34 +669,42 @@
 
   function fireTower(tower, target) {
     const stats = towers[tower.type];
-    const damage = stats.damage * (1 + tower.level * .42);
+    const tier = tower.level + 1;
+    const damage = stats.damage * (1 + tower.level * .15);
     const angle = Math.atan2(target.y - tower.y, target.x - tower.x);
     tower.aim = angle;
     addEffect("muzzle", tower.x + Math.cos(angle) * 21, tower.y + Math.sin(angle) * 21, stats.color, 17, .12);
     addBurst(tower.x + Math.cos(angle) * 21, tower.y + Math.sin(angle) * 21, stats.color, 3, 60);
     if (tower.type === "summoner") {
-      const skeletonLimit = 3;
+      const skeletonLimit = 3 + Math.floor(tower.level / 5);
       if (summonedSkeletons.filter((skeleton) => skeleton.towerId === tower.id && !skeleton.dead).length >= skeletonLimit) return;
       playSound("summoner");
       const [x, y] = positionOnRoute(routeLength - 42);
       summonedSkeletons.push({
         id: nextEntityId++, towerId: tower.id, x, y, progress: routeLength - 42,
         hp: 44 + tower.level * 12, maxHp: 44 + tower.level * 12,
-        speed: 104, damage: stats.damage * (1 + tower.level * .42),
+        speed: 104, damage: stats.damage * (1 + tower.level * .15),
         attackCooldown: .8, meleeTimer: 0, life: 35, direction: -1, slowUntil: 0, slowFactor: 1,
       });
       setMessage("A skeleton rises from the gate and joins the fight!");
       uiDirty = true;
       return;
     }
-    if (tower.type === "tesla") playSound("tesla");
-    else if (tower.type === "frost") playSound("frost");
-    else if (tower.type === "cannon") playSound("cannon");
-    else playSound("ranger");
-    if (tower.type === "tesla") {
+    if (tower.type === "tesla" || tower.type === "laser" && tier >= 2 || tower.type === "overcharge") {
+      playSound("tesla");
+      if (tower.type === "overcharge" && tower.branch === "static" && tier >= 2) {
+        const struck = activeEnemies.filter((enemy) => !enemy.dead && Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= stats.range + tower.level * 4);
+        struck.forEach((enemy) => applyDamage(enemy, damage * .72, 0, "tesla"));
+        addEffect("static", tower.x, tower.y, stats.color, stats.range + tower.level * 4, .42);
+        effects.push({ type: "lightning", points: [[tower.x, tower.y], ...struck.map((enemy) => [enemy.x, enemy.y])], color: stats.color, life: .3, maxLife: .3 });
+        return;
+      }
       const struck = [target];
       applyDamage(target, damage, 0, tower.type);
-      for (let chain = 1; chain < stats.chains; chain++) {
+      const chainLimit = tower.type === "laser" ? (tier >= 6 ? 5 : tier >= 3 ? 3 : 1)
+        : tower.type === "overcharge" ? (tier >= 2 ? 5 : 1)
+          : stats.chains + Math.floor(tower.level / 3);
+      for (let chain = 1; chain < chainLimit; chain++) {
         const origin = struck[struck.length - 1];
         const next = activeEnemies
           .filter((enemy) => !enemy.dead && !struck.includes(enemy) && Math.hypot(enemy.x - origin.x, enemy.y - origin.y) < 91)
@@ -658,18 +713,103 @@
         struck.push(next);
         applyDamage(next, damage * .72, 0, tower.type);
       }
-      effects.push({ type: "lightning", points: [[tower.x, tower.y - 8], ...struck.map((enemy) => [enemy.x, enemy.y])], color: stats.color, life: .24, maxLife: .24 });
+      effects.push({
+        type: tower.type === "laser" ? "beam" : "lightning",
+        points: [[tower.x, tower.y - 8], ...struck.map((enemy) => [enemy.x, enemy.y])],
+        color: tower.type === "laser" && tier >= 3 ? "#d79cff" : tower.type === "overcharge" && tier >= 2 ? "#ffb85d" : tower.type === "tesla" && tier >= 6 ? "#ffcc68" : stats.color,
+        life: tower.type === "laser" ? .38 : .24, maxLife: tower.type === "laser" ? .38 : .24,
+      });
       struck.forEach((enemy) => addBurst(enemy.x, enemy.y, stats.color, 5, 100));
       return;
     }
+    if (tower.type === "void" && tier >= 3) {
+      playSound("tesla");
+      const radius = 55 + tier * 5;
+      for (const enemy of activeEnemies) {
+        if (!enemy.dead && Math.hypot(enemy.x - target.x, enemy.y - target.y) <= radius) applyDamage(enemy, damage * .85, 0, tower.type);
+      }
+      addEffect("portal", target.x, target.y, stats.color, radius, .65);
+      for (let strike = 0; strike < 5; strike++) {
+        const nearby = activeEnemies.filter((enemy) => !enemy.dead && Math.hypot(enemy.x - target.x, enemy.y - target.y) <= radius);
+        if (nearby[strike]) effects.push({ type: "lightning", points: [[target.x, target.y - 85], [nearby[strike].x, nearby[strike].y]], color: "#d69cff", life: .3, maxLife: .3 });
+      }
+      return;
+    }
+    if (tower.type === "tesla" || tower.type === "frost" || tower.type === "elementalist" && tower.branch === "ice" && tier >= 2) playSound("frost");
+    else if (tower.type === "cannon" || tower.type === "alchemist") playSound("cannon");
+    else playSound("ranger");
+    let shotType = stats.shot;
+    let shotColor = stats.color;
+    let slow = stats.slow ? Math.max(.2, stats.slow - tower.level * .025) : 0;
+    let splash = stats.splash ? stats.splash + Math.floor(tower.level / 2) * 3 : 0;
+    let field = null;
+    if (tower.type === "elementalist" && tier >= 2) {
+      if (tower.branch === "ice") {
+        shotType = "iceShard";
+        shotColor = "#8aeaff";
+        slow = .48;
+        splash = 34 + tier * 2;
+        field = { color: "#7ddff5", dps: damage * .2, slow: .58, duration: 2.1 };
+      } else {
+        shotType = "fireball";
+        shotColor = "#ff7548";
+        splash = 35 + tier * 2;
+        field = { color: "#ff7042", dps: damage * .32, duration: 3.1 };
+      }
+    } else if (tower.type === "alchemist" && tier >= 2) {
+      shotType = tower.branch === "acid" ? "slime" : "flask";
+      shotColor = tower.branch === "acid" ? "#c76aff" : "#83f37e";
+      splash = 22;
+      field = { color: shotColor, dps: damage * (tower.branch === "acid" ? .45 : .36), duration: 4.4, armorBreak: tower.branch === "acid" ? .15 : 0 };
+    } else if (tower.type === "void" && tier >= 2) {
+      shotType = "blackHole";
+      shotColor = "#b783ff";
+      splash = 30 + tier * 2;
+      field = { color: "#a56bff", dps: damage * .24, duration: 2.8, slow: .72 };
+    } else if (tower.type === "laser") {
+      shotType = tier >= 2 ? "beam" : "pulse";
+      shotColor = tier >= 5 ? "#bb79ff" : "#ff6478";
+    } else if (tower.type === "elementalist") {
+      shotType = "energyBolt";
+      shotColor = "#f8f8ff";
+    } else if (tower.type === "alchemist") {
+      shotType = "shell";
+      shotColor = "#292326";
+      splash = 22;
+    } else if (tower.type === "cannon" && tier >= 5) {
+      shotColor = "#ff7444";
+      field = { color: "#ff7042", dps: damage * .2, duration: 2.1 };
+    } else if (tower.type === "frost" && tier >= 5) {
+      field = { color: "#78e5ff", dps: damage * .16, slow: .52, duration: 2.5 };
+    }
     projectiles.push({
-      type: stats.shot, target, x: tower.x, y: tower.y - 8, damage,
-      speed: tower.type === "cannon" ? 295 : 405, color: stats.color,
-      slow: stats.slow || 0, splash: stats.splash || 0, towerType: tower.type, trail: [],
+      type: shotType, target, x: tower.x, y: tower.y - 8, damage,
+      speed: tower.type === "cannon" || tower.type === "alchemist" ? 295 : shotType === "blackHole" ? 205 : 405,
+      color: shotColor, slow, splash, field, towerType: tower.type,
+      trail: [], branch: tower.branch,
     });
+    if (tower.type === "ranger" && tier >= 5) {
+      const extraTargets = activeEnemies
+        .filter((enemy) => !enemy.dead && enemy !== target && Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= stats.range + tower.level * 4)
+        .sort((a, b) => Math.hypot(a.x - tower.x, a.y - tower.y) - Math.hypot(b.x - tower.x, b.y - tower.y))
+        .slice(0, tier >= 8 ? 2 : 1);
+      for (const extraTarget of extraTargets) {
+        projectiles.push({ ...projectiles.at(-1), target: extraTarget, x: tower.x, y: tower.y - 8, trail: [] });
+      }
+    }
   }
 
   function hitProjectile(shot) {
+    if (shot.field) {
+      damageFields.push({
+        x: shot.x, y: shot.y, radius: shot.splash || 32, color: shot.field.color,
+        dps: shot.field.dps, duration: shot.field.duration, tick: 0,
+        slow: shot.field.slow || 0, armorBreak: shot.field.armorBreak || 0, towerType: shot.towerType,
+        progress: shot.target.progress, pull: shot.towerType === "void",
+      });
+      addEffect(shot.towerType === "void" ? "portal" : "blast", shot.x, shot.y, shot.field.color, shot.splash || 32, .55);
+      addBurst(shot.x, shot.y, shot.field.color, shot.towerType === "alchemist" ? 16 : 12, 100);
+    }
     if (shot.splash) {
       addEffect("blast", shot.x, shot.y, shot.color, shot.splash, .38);
       addBurst(shot.x, shot.y, shot.color, 18, 145);
@@ -795,10 +935,15 @@
     summonedSkeletons = summonedSkeletons.filter((skeleton) => !skeleton.dead);
 
     if (state === "wave" && !spawnQueue.length && !activeEnemies.length) {
-      if (wave === 100) {
+      if (wave === modes[currentMode].waves) {
         state = "victory";
-        setMessage("Every boss defeated. You held the Last Light through wave 100!");
+        setMessage(`Campaign complete · ${modes[currentMode].name} survived.`);
         updateBest();
+        if (!campaignRewarded) {
+          gems += modes[currentMode].reward;
+          campaignRewarded = true;
+          saveAccountProgress();
+        }
       } else {
         state = "build";
         const reward = 30 + wave * 4;
@@ -814,17 +959,20 @@
       tower.cooldown -= dt;
       if (tower.cooldown > 0) continue;
       const stats = towers[tower.type];
-      const range = stats.range + tower.level * 10;
+      const range = stats.range + tower.level * 4;
       if (tower.disabledUntil > gameTime) {
         tower.cooldown = Math.max(tower.cooldown, .12);
         continue;
       }
       const chilled = activeEnemies.some((enemy) => enemy.boss && enemy.ability === "frost" && Math.hypot(enemy.x - tower.x, enemy.y - tower.y) < 112);
-      const targets = activeEnemies.filter((enemy) => Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= range);
+      const targets = activeEnemies.filter((enemy) => {
+        const distance = Math.hypot(enemy.x - tower.x, enemy.y - tower.y);
+        return distance <= range && (!enemy.hidden || distance <= 72);
+      });
       if (!targets.length) continue;
       const target = targets.reduce((furthest, enemy) => enemy.progress > furthest.progress ? enemy : furthest);
       fireTower(tower, target);
-      tower.cooldown = stats.cooldown * (tower.type === "ranger" ? 1 - tower.level * .12 : 1) * (chilled ? 1.55 : 1);
+      tower.cooldown = stats.cooldown * Math.max(.48, 1 - tower.level * .045) * (chilled ? 1.55 : 1);
     }
 
     for (const shot of projectiles) {
@@ -850,6 +998,28 @@
       }
     }
     projectiles = projectiles.filter((shot) => !shot.dead);
+    for (const field of damageFields) {
+      field.duration -= dt;
+      field.tick -= dt;
+      if (field.pull) {
+        for (const enemy of activeEnemies) {
+          if (enemy.dead || Math.hypot(enemy.x - field.x, enemy.y - field.y) > field.radius) continue;
+          const delta = field.progress - enemy.progress;
+          enemy.progress += Math.sign(delta) * Math.min(Math.abs(delta), 24 * dt);
+          [enemy.x, enemy.y] = positionOnRoute(enemy.progress);
+          enemy.slowUntil = Math.max(enemy.slowUntil, gameTime + .15);
+          enemy.slowFactor = Math.min(enemy.slowFactor || 1, .72);
+        }
+      }
+      if (field.tick > 0) continue;
+      field.tick = .4;
+      for (const enemy of activeEnemies) {
+        if (enemy.dead || Math.hypot(enemy.x - field.x, enemy.y - field.y) > field.radius) continue;
+        applyDamage(enemy, field.dps * .4, field.slow, field.towerType);
+        if (field.armorBreak) enemy.acidUntil = gameTime + 3;
+      }
+    }
+    damageFields = damageFields.filter((field) => field.duration > 0);
     for (const particle of particles) {
       particle.life -= dt;
       particle.x += particle.vx * dt;
@@ -865,14 +1035,22 @@
   function validPlacement(x, y, type) {
     if (x < 28 || x > 932 || y < 28 || y > 572 || distanceToRoute(x, y) < 49) return false;
     if (placedTowers.some((tower) => Math.hypot(tower.x - x, tower.y - y) < 47)) return false;
-    return gold >= towers[type].cost && state !== "gameover";
+    const stats = towers[type];
+    return gold >= stats.cost && state === "build" && placedTowers.filter((tower) => tower.type === type).length < stats.limit;
   }
 
   function placeTower(x, y) {
     if (!selectedType) return;
     const stats = towers[selectedType];
+    if (placedTowers.filter((tower) => tower.type === selectedType).length >= stats.limit) {
+      setMessage(`${stats.name} limit reached · maximum ${stats.limit}.`);
+      return;
+    }
     if (validPlacement(x, y, selectedType)) {
-      const tower = { id: nextEntityId++, type: selectedType, x, y, level: 0, cooldown: 0, aim: -Math.PI / 2 };
+      const tower = {
+        id: nextEntityId++, type: selectedType, x, y, level: 0, cooldown: 0, aim: -Math.PI / 2,
+        branch: selectedType === "elementalist" ? "fire" : selectedType === "overcharge" ? "plasma" : "toxin",
+      };
       placedTowers.push(tower);
       gold -= stats.cost;
       selectedTower = tower;
@@ -887,7 +1065,15 @@
   }
 
   function selectTower(type) {
-    if (state === "intro" || state === "gameover" || state === "paused") return;
+    if (state !== "build" && state !== "wave") return;
+    if (towers[type].premium && !unlockedTowers.has(type)) {
+      setMessage(`${towers[type].name} is locked. Unlock it in the tower shop with gems.`);
+      return;
+    }
+    if (placedTowers.filter((tower) => tower.type === type).length >= towers[type].limit) {
+      setMessage(`${towers[type].name} limit reached · maximum ${towers[type].limit}.`);
+      return;
+    }
     if (gold < towers[type].cost && selectedType !== type) {
       setMessage(`Not enough gold for ${towers[type].name} · need ◈ ${towers[type].cost}`);
       return;
@@ -898,14 +1084,24 @@
   }
 
   function upgradeTower() {
-    if (!selectedTower || selectedTower.level >= 2) return;
+    if (!selectedTower || selectedTower.level >= 9) return;
     const stats = towers[selectedTower.type];
-    const cost = Math.round(stats.cost * (.85 + selectedTower.level * .5));
+    const cost = Math.round(stats.cost * (.55 + (selectedTower.level + 1) * .38));
     if (gold < cost) return;
     gold -= cost;
     selectedTower.level++;
     selectedTower.cooldown = Math.min(selectedTower.cooldown, .15);
-    setMessage(`${stats.name} upgraded to level ${selectedTower.level + 1}.`);
+    setMessage(`${stats.name} upgraded to level ${selectedTower.level + 1}${selectedTower.level === 1 ? " · new attack effect unlocked" : ""}.`);
+    uiDirty = true;
+  }
+
+  function chooseTowerBranch(branch) {
+    if (!selectedTower || !["elementalist", "alchemist", "overcharge"].includes(selectedTower.type)) return;
+    if (selectedTower.type === "elementalist" && !["fire", "ice"].includes(branch)) return;
+    if (selectedTower.type === "alchemist" && !["toxin", "acid"].includes(branch)) return;
+    if (selectedTower.type === "overcharge" && !["plasma", "static"].includes(branch)) return;
+    selectedTower.branch = branch;
+    setMessage(`${towers[selectedTower.type].name} path changed to ${branch === "fire" ? "Pyromancer" : branch === "ice" ? "Glacier" : branch === "acid" ? "Corrosive Acid" : "Toxic Gas"}.`);
     uiDirty = true;
   }
 
@@ -922,10 +1118,56 @@
   function pauseToggle() {
     if (state === "build" || state === "wave") {
       pausedFrom = state;
+      returnToCampaign = true;
       state = "paused";
     } else if (state === "paused") {
       state = pausedFrom;
+      returnToCampaign = false;
     }
+    uiDirty = true;
+  }
+
+  function saveAccountProgress() {
+    try {
+      localStorage.setItem("last-light-gems", String(gems));
+      localStorage.setItem("last-light-unlocked-towers", JSON.stringify([...unlockedTowers]));
+      localStorage.setItem("last-light-sound", soundEnabled ? "on" : "off");
+    } catch (error) {
+      console.warn("Could not save gems, tower unlocks, or settings on this device.", error);
+    }
+  }
+
+  function applyMap(mapKey) {
+    currentMapKey = mapKey;
+    route = maps[mapKey].route;
+    segments = route.slice(1).map((end, index) => {
+      const start = route[index];
+      const dx = end[0] - start[0];
+      const dy = end[1] - start[1];
+      return { start, dx, dy, length: Math.hypot(dx, dy) };
+    });
+    routeLength = segments.reduce((total, segment) => total + segment.length, 0);
+    drawStaticWorld();
+  }
+
+  function buyTower(type) {
+    const stats = towers[type];
+    if (!stats?.premium || unlockedTowers.has(type)) return;
+    if (gems < stats.gemCost) {
+      setMessage(`You need ${stats.gemCost - gems} more gems to unlock ${stats.name}.`);
+      return;
+    }
+    gems -= stats.gemCost;
+    unlockedTowers.add(type);
+    saveAccountProgress();
+    setMessage(`${stats.name} unlocked! It is ready in your arsenal.`);
+    uiDirty = true;
+  }
+
+  function openShop() {
+    shopReturnState = state;
+    state = "shop";
+    selectedType = null;
     uiDirty = true;
   }
 
@@ -938,6 +1180,7 @@
     placedTowers = [];
     activeEnemies = [];
     projectiles = [];
+    damageFields = [];
     summonedSkeletons = [];
     particles = [];
     effects = [];
@@ -946,6 +1189,8 @@
     gameSpeed = 1;
     autoWave = false;
     autoWaveTimer = 0;
+    campaignRewarded = false;
+    returnToCampaign = false;
     nextEntityId = 1;
     state = "build";
     setMessage("Choose a defender, then place it on the grass.");
@@ -953,58 +1198,125 @@
   }
 
   function showOverlay() {
-    const visible = state === "intro" || state === "paused" || state === "gameover" || state === "victory";
+    const screens = ["menu", "mode-select", "map-select", "shop", "settings", "about", "paused", "gameover", "victory"];
+    const visible = screens.includes(state);
     ui.overlay.classList.toggle("is-hidden", !visible);
-    if (state === "intro") {
-      ui.overlayEyebrow.textContent = "A DEFENSE GAME ABOUT HOLDING ON";
-      ui.overlayTitle.textContent = "Last Light";
-      ui.overlayCopy.textContent = "Five towers. One winding road. Legendary bosses in the dark.";
-      ui.overlayButton.textContent = "ENTER THE FIELD";
+    ui.overlay.classList.toggle("is-menu", ["menu", "mode-select", "map-select", "shop", "settings", "about"].includes(state));
+    if (!visible) return;
+    if (state === "menu") {
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">A DEFENSE GAME ABOUT HOLDING ON</p><h1>Last Light</h1>
+        <p class="overlay-copy">Choose your challenge, build a defense, and keep the gate alive.</p>
+        <div class="menu-actions">${returnToCampaign ? `<button class="primary-button" data-action="resume">RESUME CAMPAIGN</button>` : ""}
+        <button class="primary-button" data-action="play">PLAY</button>
+        <button class="secondary-button" data-action="shop">TOWER SHOP · ✦ ${gems}</button>
+        <button class="secondary-button" data-action="settings">SETTINGS</button>
+        <button class="secondary-button" data-action="about">ABOUT THE GAME</button></div>`;
+    } else if (state === "mode-select") {
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">STEP 1 · ENEMY DIFFICULTY</p><h1>Choose a mode</h1>
+        <p class="overlay-copy">Mode changes enemy strength and campaign length. Map stars are a separate challenge.</p>
+        <div class="choice-grid mode-grid">${modeOrder.map((key) => {
+          const mode = modes[key];
+          return `<button class="choice-card${selectedMode === key ? " is-selected" : ""}" data-mode="${key}" aria-pressed="${selectedMode === key}">
+            <strong>${mode.name}</strong><span>${mode.waves} waves</span><small>${mode.description}</small></button>`;
+        }).join("")}</div>
+        <div class="overlay-actions"><button class="secondary-button" data-action="home">MAIN MENU</button><button class="primary-button" data-action="maps">CHOOSE MAP →</button></div>`;
+    } else if (state === "map-select") {
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">STEP 2 · MAP CHALLENGE</p><h1>Choose a map</h1>
+        <p class="overlay-copy"><strong>${modes[selectedMode].name} · ${modes[selectedMode].waves} waves</strong> sets enemy difficulty. Map stars rate terrain challenge only.</p>
+        <div class="choice-grid map-grid">${Object.entries(maps).map(([key, map]) => `
+          <button class="choice-card map-choice${selectedMapKey === key ? " is-selected" : ""}" data-map="${key}" aria-pressed="${selectedMapKey === key}">
+            <strong>${map.name}</strong><span class="map-stars" aria-label="${map.stars} star map">${"★".repeat(map.stars)}${"☆".repeat(5 - map.stars)}</span>
+            <small>Map difficulty · ${map.stars}/5 stars</small></button>`).join("")}</div>
+        <p class="map-rules">Enemy mode: ${modes[selectedMode].name} · Map difficulty: ${maps[selectedMapKey].stars}/5 stars. These are separate settings.</p>
+        <div class="overlay-actions"><button class="secondary-button" data-action="modes">← CHANGE MODE</button><button class="primary-button" data-action="launch">START CAMPAIGN</button></div>`;
+    } else if (state === "shop") {
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">PERMANENT UNLOCKS · BATTLE GOLD IS SEPARATE</p><h1>Tower shop</h1>
+        <p class="overlay-copy">Complete campaigns to earn gems. Spend them here to unlock towers for battles.</p>
+        <p class="gem-balance">YOUR GEMS <strong>✦ ${gems}</strong></p>
+        <div class="shop-grid">${Object.entries(towers).filter(([, stats]) => stats.premium).map(([key, stats]) => `
+          <article class="shop-card"><span class="shop-icon" style="color:${stats.color}">${stats.icon}</span>
+            <div><strong>${stats.name}</strong><small>${stats.role}</small></div>
+            <button class="shop-buy" data-buy="${key}" ${unlockedTowers.has(key) || gems < stats.gemCost ? "disabled" : ""}>
+              ${unlockedTowers.has(key) ? "UNLOCKED" : `✦ ${stats.gemCost}`}</button></article>`).join("")}</div>
+        <div class="overlay-actions"><button class="secondary-button" data-action="shop-back">BACK</button></div>`;
+    } else if (state === "settings") {
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">TUNE YOUR DEFENSE</p><h1>Settings</h1>
+        <p class="overlay-copy">Your preferences are saved on this device.</p>
+        <div class="setting-row"><span><strong>Game sounds</strong><small>Music and tower sound effects</small></span><button class="secondary-button" data-action="toggle-sound">${soundEnabled ? "ON" : "OFF"}</button></div>
+        <div class="setting-row"><span><strong>Reduced visual effects</strong><small>Reduce ambient particles and flashes</small></span><button class="secondary-button" data-action="toggle-effects">${settingsReducedMotion ? "ON" : "OFF"}</button></div>
+        <div class="overlay-actions"><button class="secondary-button" data-action="home">MAIN MENU</button></div>`;
+    } else if (state === "about") {
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">ABOUT LAST LIGHT</p><h1>Hold the line.</h1>
+        <p class="about-copy">Last Light is a strategy tower-defense game about protecting the last gate from an ever-changing night. Choose one of five enemy modes, then pick one of five maps with its own separate terrain challenge. Build and upgrade ten distinct towers, survive escalating waves and boss encounters, and earn gems by completing a campaign to unlock five specialist towers.</p>
+        <p class="about-copy">Battle gold is temporary and only buys defenses during a campaign. Gems are separate, saved between campaigns on this device, and used only in the tower shop.</p>
+        <div class="overlay-actions"><button class="secondary-button" data-action="home">MAIN MENU</button></div>`;
     } else if (state === "paused") {
-      ui.overlayEyebrow.textContent = "TAKE A BREATH";
-      ui.overlayTitle.textContent = "Battle paused";
-      ui.overlayCopy.textContent = "Your defenders are waiting. Pick up where you left off.";
-      ui.overlayButton.textContent = "RESUME DEFENSE";
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">TAKE A BREATH</p><h1>Battle paused</h1>
+        <p class="overlay-copy">Your defenders are waiting. Pick up where you left off.</p>
+        <div class="overlay-actions"><button class="primary-button" data-action="resume">RESUME DEFENSE</button><button class="secondary-button" data-action="home">MAIN MENU</button></div>`;
     } else if (state === "gameover") {
-      ui.overlayEyebrow.textContent = "THE GATE HAS FALLEN";
-      ui.overlayTitle.textContent = "The night wins.";
-      ui.overlayCopy.textContent = `You reached wave ${wave}. Will you defend the gate again?`;
-      ui.overlayButton.textContent = "DEFEND AGAIN";
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">THE GATE HAS FALLEN</p><h1>The night wins.</h1>
+        <p class="overlay-copy">You reached wave ${wave} of ${modes[currentMode].waves} in ${modes[currentMode].name}.</p>
+        <div class="overlay-actions"><button class="primary-button" data-action="retry">TRY AGAIN</button><button class="secondary-button" data-action="home">MAIN MENU</button></div>`;
     } else if (state === "victory") {
-      ui.overlayEyebrow.textContent = "A CENTURY OF WAVES · 20 BOSSES DEFEATED";
-      ui.overlayTitle.textContent = "The night is over.";
-      ui.overlayCopy.textContent = "You held the gate through wave 100 and saved the Last Light.";
-      ui.overlayButton.textContent = "DEFEND AGAIN";
+      ui.overlayContent.innerHTML = `
+        <p class="overlay-eyebrow">CAMPAIGN COMPLETE · ${modes[currentMode].waves} WAVES</p><h1>The light endures.</h1>
+        <p class="overlay-copy">${modes[currentMode].name} conquered on ${maps[currentMapKey].name}. You earned ✦ ${modes[currentMode].reward} gems for the tower shop.</p>
+        <div class="overlay-actions"><button class="primary-button" data-action="retry">PLAY AGAIN</button><button class="secondary-button" data-action="home">MAIN MENU</button></div>`;
     }
   }
 
   function renderTowerList() {
-    ui.towerList.innerHTML = Object.entries(towers).map(([key, stats], index) => `
-      <button class="tower-card${selectedType === key ? " is-selected" : ""}" type="button" data-tower="${key}" aria-pressed="${selectedType === key}" ${gold < stats.cost && selectedType !== key ? "disabled" : ""}>
+    ui.towerList.innerHTML = Object.entries(towers).map(([key, stats], index) => {
+      const count = placedTowers.filter((tower) => tower.type === key).length;
+      const locked = stats.premium && !unlockedTowers.has(key);
+      return `<button class="tower-card${selectedType === key ? " is-selected" : ""}" type="button" data-tower="${key}" aria-pressed="${selectedType === key}" ${!locked && (gold < stats.cost || count >= stats.limit) ? "disabled" : ""}>
         <span class="tower-icon" style="color:${stats.color}">${stats.icon}</span>
-        <span class="tower-copy"><strong>${stats.name}</strong><small>${stats.role} · ${index + 1}</small></span>
-        <span class="tower-cost">◈ ${stats.cost}</span>
-      </button>`).join("");
+        <span class="tower-copy"><strong>${stats.name}</strong><small>${locked ? `LOCKED · ✦ ${stats.gemCost}` : `${stats.role} · ${count}/${stats.limit}`}</small></span>
+        <span class="tower-cost">${locked ? "SHOP" : `◈ ${stats.cost}`}</span>
+      </button>`;
+    }).join("");
     ui.towerList.querySelectorAll("[data-tower]").forEach((button) => {
-      button.addEventListener("click", () => selectTower(button.dataset.tower));
+      button.addEventListener("click", () => {
+        const stats = towers[button.dataset.tower];
+        if (stats.premium && !unlockedTowers.has(button.dataset.tower)) {
+          setMessage(`Unlock ${stats.name} in the tower shop for ✦ ${stats.gemCost}.`);
+          return;
+        }
+        selectTower(button.dataset.tower);
+      });
     });
   }
 
   function renderBossRoster() {
-    ui.bossRoster.innerHTML = bosses.map((boss, index) => `
+    const scheduledWaves = bossWavesForMode();
+    ui.bossRoster.innerHTML = scheduledWaves.map((bossWave, index) => {
+      const boss = bosses[index % bosses.length];
+      return `
       <div class="boss-row" style="--boss-tint:${boss.color}" title="${boss.description}">
         <span class="boss-symbol">${boss.symbol}</span>
-        <span><strong>${boss.name}</strong><small>WAVE ${(index + 1) * 5} · ${boss.trait}</small></span>
-      </div>`).join("");
+        <span><strong>${boss.name}</strong><small>WAVE ${bossWave} · ${boss.trait}</small></span>
+      </div>`;
+    }).join("");
   }
 
   function updateBossIntel() {
-    const bossWave = (state === "wave" || state === "gameover") && wave % 5 === 0 ? wave : upcomingBossWave(wave);
+    const isCurrentBoss = bossWavesForMode().includes(wave) && (state === "wave" || state === "gameover");
+    const bossWave = isCurrentBoss ? wave : upcomingBossWave(wave);
+    ui.bossCount.textContent = `${bossWavesForMode().length} BOSSES`;
     if (!bossWave) {
-      ui.bossCategory.textContent = "THE FINAL BATTLE";
+      ui.bossCategory.textContent = `${modes[currentMode].name.toUpperCase()} COMPLETE`;
       ui.bossName.textContent = "The gate is secure";
-      ui.bossTrait.textContent = "ALL 20 BOSS ENCOUNTERS DEFEATED";
-      ui.bossWave.textContent = "WAVE 100";
+      ui.bossTrait.textContent = "ALL CAMPAIGN BOSSES DEFEATED";
+      ui.bossWave.textContent = `WAVE ${modes[currentMode].waves}`;
       ui.bossProgress.style.width = "100%";
       ui.bossProgressLabel.textContent = "You held the Last Light.";
       return;
@@ -1016,7 +1328,8 @@
     ui.bossName.style.color = boss.color;
     ui.bossTrait.textContent = boss.trait;
     ui.bossWave.textContent = `WAVE ${bossWave}`;
-    ui.bossProgress.style.width = `${bossActive ? 100 : (wave % 5) * 20}%`;
+    const previousBossWave = [...bossWavesForMode()].reverse().find((value) => value < bossWave) || 0;
+    ui.bossProgress.style.width = `${bossActive ? 100 : Math.max(0, (wave - previousBossWave) / (bossWave - previousBossWave) * 100)}%`;
     ui.bossProgressLabel.textContent = bossActive
       ? `${boss.description} · BOSS ON THE FIELD`
       : `${bossWave - wave} ${bossWave - wave === 1 ? "wave" : "waves"} until this encounter`;
@@ -1028,23 +1341,39 @@
       return;
     }
     const stats = towers[selectedTower.type];
-    const damage = Math.round(stats.damage * (1 + .42 * selectedTower.level));
-    const range = stats.range + selectedTower.level * 10;
-    const cost = Math.round(stats.cost * (.85 + selectedTower.level * .5));
+    const damage = Math.round(stats.damage * (1 + .15 * selectedTower.level));
+    const range = stats.range + selectedTower.level * 4;
+    const cost = Math.round(stats.cost * (.55 + (selectedTower.level + 1) * .38));
     const refund = Math.floor(stats.cost * (.72 + selectedTower.level * .25));
     const summonStatus = selectedTower.type === "summoner"
-      ? `<div class="tower-details"><span>💀 ${summonedSkeletons.filter((skeleton) => skeleton.towerId === selectedTower.id).length}/3 SKELETONS</span><span>♥ ${summonedSkeletons.filter((skeleton) => skeleton.towerId === selectedTower.id).reduce((total, skeleton) => total + skeleton.hp, 0)} TOTAL HP</span></div>`
+      ? `<div class="tower-details"><span>💀 ${summonedSkeletons.filter((skeleton) => skeleton.towerId === selectedTower.id).length}/${3 + Math.floor(selectedTower.level / 5)} SKELETONS</span><span>♥ ${summonedSkeletons.filter((skeleton) => skeleton.towerId === selectedTower.id).reduce((total, skeleton) => total + skeleton.hp, 0)} TOTAL HP</span></div>`
       : "";
+    const pathChoices = selectedTower.level >= 1 && selectedTower.type === "elementalist"
+      ? `<div class="path-choices"><button type="button" data-path="fire" class="${selectedTower.branch === "fire" ? "is-selected" : ""}">PYROMANCER</button><button type="button" data-path="ice" class="${selectedTower.branch === "ice" ? "is-selected" : ""}">GLACIER</button></div>`
+      : selectedTower.level >= 1 && selectedTower.type === "alchemist"
+        ? `<div class="path-choices"><button type="button" data-path="toxin" class="${selectedTower.branch === "toxin" ? "is-selected" : ""}">TOXIC GAS</button><button type="button" data-path="acid" class="${selectedTower.branch === "acid" ? "is-selected" : ""}">CORROSIVE ACID</button></div>`
+        : selectedTower.level >= 1 && selectedTower.type === "overcharge"
+          ? `<div class="path-choices"><button type="button" data-path="plasma" class="${selectedTower.branch === "plasma" ? "is-selected" : ""}">PLASMA CHAINS</button><button type="button" data-path="static" class="${selectedTower.branch === "static" ? "is-selected" : ""}">STATIC FIELD</button></div>`
+        : "";
+    const attackStyle = selectedTower.type === "elementalist"
+      ? selectedTower.level === 0 ? "Standard Arc" : selectedTower.branch === "ice" ? "Glacier · slowing ice field" : "Pyromancer · lingering magma"
+      : selectedTower.type === "laser" ? selectedTower.level === 0 ? "Pulse laser" : selectedTower.level < 2 ? "Beam Lock" : "Orbital Prism · refracted beams"
+        : selectedTower.type === "alchemist" ? selectedTower.level === 0 ? "Mortar bomb" : selectedTower.branch === "acid" ? "Corrosive acid puddle" : "Toxic gas cloud"
+          : selectedTower.type === "void" ? selectedTower.level < 1 ? "Graviton spark" : selectedTower.level < 2 ? "Singularity burst" : "Event Horizon · portal strikes"
+            : selectedTower.type === "overcharge" ? selectedTower.level < 1 ? "Spark Coil" : selectedTower.branch === "static" ? "Static Field · area pulses" : "Overcharged plasma · 5 chains"
+              : `Level ${selectedTower.level + 1} attack`;
     ui.inspection.innerHTML = `
       <h2 style="color:${stats.color}">${stats.name} <span style="color:#95a09e">· LV ${selectedTower.level + 1}</span></h2>
-      <p>${selectedTower.type === "summoner" ? "Raises skeleton defenders at the gate. Enemies stop to attack them; skeletons fight back until one side falls." : `Deals ${damage} damage · ${range} range · targets the furthest enemy in reach.`}</p>
+      <p>${selectedTower.type === "summoner" ? "Raises skeleton defenders at the gate. Enemies stop to attack them; skeletons fight back until one side falls." : `Deals ${damage} damage · ${range} range · ${attackStyle}.`}</p>
       <div class="tower-details"><span>✦ ${damage} DMG</span><span>◎ ${range} RANGE</span></div>
       ${summonStatus}
-      <div class="inspect-actions">${selectedTower.level < 2 ? `<button type="button" data-action="upgrade" ${gold < cost ? "disabled" : ""}>✦ UPGRADE · ◈ ${cost}</button>` : ""}<button class="sell-button" type="button" data-action="sell">SELL · ◈ ${refund}</button></div>`;
+      ${pathChoices}
+      <div class="inspect-actions">${selectedTower.level < 9 ? `<button type="button" data-action="upgrade" ${gold < cost ? "disabled" : ""}>✦ UPGRADE · ◈ ${cost} · LV ${selectedTower.level + 2}</button>` : `<span class="max-level">MAX LEVEL · 10</span>`}<button class="sell-button" type="button" data-action="sell">SELL · ◈ ${refund}</button></div>`;
     const upgrade = ui.inspection.querySelector('[data-action="upgrade"]');
     const sell = ui.inspection.querySelector('[data-action="sell"]');
     if (upgrade) upgrade.addEventListener("click", upgradeTower);
     sell.addEventListener("click", sellTower);
+    ui.inspection.querySelectorAll("[data-path]").forEach((button) => button.addEventListener("click", () => chooseTowerBranch(button.dataset.path)));
   }
 
   function updateUI() {
@@ -1052,11 +1381,14 @@
     ui.gold.textContent = gold;
     ui.wave.textContent = wave === 0 ? "PREPARE" : String(wave);
     ui.best.textContent = bestWave || "—";
+    ui.gemCount.textContent = gems;
+    ui.shopGems.textContent = gems;
     ui.count.textContent = `${placedTowers.length} BUILT`;
-    ui.nextWave.textContent = wave >= 100 ? "—" : wave + 1;
+    ui.nextWave.textContent = wave >= modes[currentMode].waves ? "—" : wave + 1;
     ui.message.textContent = message;
+    ui.campaignLabel.textContent = `${modes[currentMode].name} · ${maps[currentMapKey].name} · ${wave}/${modes[currentMode].waves}`;
     ui.waveButton.disabled = state !== "build";
-    ui.autoWaveButton.disabled = state === "intro" || state === "gameover" || state === "victory";
+    ui.autoWaveButton.disabled = ["menu", "mode-select", "map-select", "shop", "settings", "about", "gameover", "victory"].includes(state);
     ui.autoWaveButton.textContent = autoWave ? "AUTO: ON" : "AUTO: OFF";
     ui.autoWaveButton.classList.toggle("is-active", autoWave);
     ui.autoWaveButton.setAttribute("aria-pressed", String(autoWave));
@@ -1064,12 +1396,14 @@
     ui.speedButton.classList.toggle("is-active", gameSpeed === 2);
     ui.pauseButton.classList.toggle("is-active", state === "paused");
     ui.pauseButton.textContent = state === "paused" ? "▶" : "Ⅱ";
+    ui.menuButton.disabled = ["menu", "mode-select", "map-select", "settings", "about"].includes(state);
     ui.soundButton.classList.toggle("is-active", !soundEnabled);
     ui.soundButton.textContent = soundEnabled ? "♫" : "♪̸";
     ui.soundButton.setAttribute("aria-label", soundEnabled ? "Mute game sounds" : "Enable game sounds");
     ui.soundButton.title = soundEnabled ? "Mute game sounds" : "Enable game sounds";
     renderTowerList();
     renderInspection();
+    renderBossRoster();
     updateBossIntel();
     showOverlay();
     uiDirty = false;
@@ -1127,18 +1461,20 @@
     ctx.letterSpacing = "1px";
     ctx.fillText("THE GATE", 909, 486);
     ctx.restore();
-    glow(16, 145, "#fb8d76", 27, .5 + pulse * .2);
+    const [breachX, breachY] = positionOnRoute(12);
+    glow(breachX, breachY, "#fb8d76", 27, .5 + pulse * .2);
     ctx.fillStyle = "#ffe0ad";
     ctx.beginPath();
-    ctx.arc(16, 145, 5, 0, Math.PI * 2);
+    ctx.arc(breachX, breachY, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#f4a087";
     ctx.font = "800 9px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText("BREACH", 16, 117);
+    ctx.fillText("BREACH", breachX, breachY - 28);
   }
 
   function drawFireflies(now) {
+    if (settingsReducedMotion) return;
     for (const fly of fireflies) {
       const flicker = .18 + .52 * (.5 + .5 * Math.sin(now * .0015 * fly.drift + fly.phase));
       const x = fly.x + Math.sin(now * .0003 + fly.phase) * 4;
@@ -1189,10 +1525,128 @@
     ctx.arc(0, 4, 11, 0, Math.PI * 2);
     ctx.fill();
 
-    if (tower.type === "summoner") {
+    if (tower.type === "elementalist") {
+      const hue = tower.branch === "ice" && tower.level >= 1 ? "#8cecff" : tower.level >= 1 ? "#ff7548" : "#f8f8ff";
+      const count = Math.min(5, 1 + Math.floor(tower.level / 2));
+      const orbit = gameTime * (1 + tower.level * .08) + tower.id;
+      for (let shard = 0; shard < count; shard++) {
+        const phase = orbit + shard * Math.PI * 2 / count;
+        const radius = 8 + (tower.level >= 4 ? 5 : 0);
+        const sx = Math.cos(phase) * radius;
+        const sy = -7 + Math.sin(phase) * radius;
+        glow(sx, sy, hue, 12, .72 * pulse);
+        ctx.fillStyle = shard % 2 ? hue : "#fff6dc";
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2.5 + tower.level * .08, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.strokeStyle = hue;
+      ctx.lineWidth = 2 + Math.min(3, tower.level * .25);
+      ctx.beginPath();
+      ctx.arc(0, 1, 11 + Math.sin(gameTime * 3) * 1.2, gameTime, gameTime + Math.PI * 1.6);
+      ctx.stroke();
+    } else if (tower.type === "laser") {
+      ctx.rotate(angle);
+      const laserColor = tower.level >= 4 ? "#c784ff" : "#ff687e";
+      ctx.shadowColor = laserColor;
+      ctx.shadowBlur = 13 + tower.level * 2;
+      ctx.strokeStyle = "#392a3a";
+      ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.moveTo(0, 2);
+      ctx.lineTo(22, 0);
+      ctx.stroke();
+      ctx.strokeStyle = laserColor;
+      ctx.lineWidth = 3 + Math.min(4, tower.level * .35);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fff1f6";
+      ctx.beginPath();
+      ctx.arc(22, 0, 4 + tower.level * .18, 0, Math.PI * 2);
+      ctx.fill();
+      if (tower.level >= 2) {
+        ctx.strokeStyle = "#ffd9e3";
+        ctx.lineWidth = 1;
+        for (const ray of [-.45, 0, .45]) {
+          ctx.beginPath();
+          ctx.moveTo(4, 0);
+          ctx.lineTo(21, Math.sin(ray) * 9);
+          ctx.stroke();
+        }
+      }
+    } else if (tower.type === "alchemist") {
+      const acid = tower.branch === "acid" && tower.level >= 1;
+      const potion = acid ? "#ce79ff" : tower.level >= 1 ? "#8ef58b" : "#d3d9cf";
+      glow(0, -5, potion, 25 + tower.level, .66 * pulse);
+      ctx.fillStyle = "#313b3a";
+      ctx.strokeStyle = potion;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-8, -13); ctx.lineTo(8, -13); ctx.lineTo(6, -4);
+      ctx.lineTo(10, 7); ctx.lineTo(6, 13); ctx.lineTo(-6, 13);
+      ctx.lineTo(-10, 7); ctx.lineTo(-6, -4); ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = potion;
+      ctx.globalAlpha = .85;
+      roundedRect(-6, 2, 12, 8, 3);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#efffe7";
+      ctx.beginPath();
+      ctx.arc(-2, 1, 1.5, 0, Math.PI * 2);
+      ctx.arc(3, 5, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (tower.type === "void") {
+      const phase = gameTime * 1.6 + tower.id;
+      ctx.strokeStyle = "#7754a8";
+      ctx.lineWidth = 2 + tower.level * .16;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 14 + Math.sin(phase) * 2, 6, phase, 0, Math.PI * 2);
+      ctx.stroke();
+      glow(0, -5, "#a85cff", 25 + tower.level * 2, .8 * pulse);
+      const orb = ctx.createRadialGradient(-3, -7, 1, 0, -5, 12);
+      orb.addColorStop(0, "#fff4ff");
+      orb.addColorStop(.2, "#d1a4ff");
+      orb.addColorStop(.56, "#682baa");
+      orb.addColorStop(1, "#160d25");
+      ctx.fillStyle = orb;
+      ctx.beginPath();
+      ctx.arc(0, -5, 7 + Math.min(4, tower.level * .35), 0, Math.PI * 2);
+      ctx.fill();
+      for (let mote = 0; mote < Math.min(5, 2 + Math.floor(tower.level / 2)); mote++) {
+        const a = phase + mote * Math.PI * 2 / 5;
+        ctx.fillStyle = "#e2c5ff";
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * 17, -5 + Math.sin(a) * 11, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (tower.type === "overcharge") {
+      const staticMode = tower.branch === "static" && tower.level >= 1;
+      const levelColor = staticMode ? "#64cfff" : tower.level >= 5 ? "#ffc968" : "#64cfff";
+      ctx.strokeStyle = levelColor;
+      ctx.lineWidth = 2 + tower.level * .22;
+      ctx.beginPath();
+      ctx.moveTo(-9, 8); ctx.lineTo(-5, -7); ctx.lineTo(1, -14);
+      ctx.lineTo(8, -6); ctx.lineTo(14, -15 + Math.sin(gameTime * 6 + tower.id) * 3);
+      ctx.stroke();
+      glow(14, -15, levelColor, 22 + tower.level * 2, .9 * pulse);
+      ctx.fillStyle = "#f7fbff";
+      ctx.beginPath();
+      ctx.arc(14, -15, 4 + tower.level * .15, 0, Math.PI * 2);
+      ctx.fill();
+      if (staticMode) {
+        ctx.strokeStyle = `${levelColor}bb`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 22 + Math.sin(gameTime * 4) * 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (tower.type === "summoner") {
       const orbit = gameTime * 1.8 + tower.id;
-      for (let mote = 0; mote < 3; mote++) {
-        const phase = orbit + mote * Math.PI * 2 / 3;
+      const moteCount = Math.min(6, 3 + Math.floor(tower.level / 3));
+      for (let mote = 0; mote < moteCount; mote++) {
+        const phase = orbit + mote * Math.PI * 2 / moteCount;
         const mx = Math.cos(phase) * (9 + mote);
         const my = -11 + Math.sin(phase) * 7;
         glow(mx, my, stats.color, 13, .6 * pulse);
@@ -1220,23 +1674,25 @@
       ctx.arc(0, -4, 4.5 + Math.sin(gameTime * 5 + tower.id) * .8, 0, Math.PI * 2);
       ctx.fill();
     } else if (tower.type === "tesla") {
+      const arcColor = tower.level >= 5 ? "#ffd06a" : stats.color;
       const sway = Math.sin(gameTime * 5 + tower.id) * 2;
       ctx.strokeStyle = "#8a78b2";
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 5 + tower.level * .35;
       ctx.beginPath();
       ctx.moveTo(-8, 7); ctx.lineTo(-5, -9); ctx.lineTo(2, -15); ctx.lineTo(9, -8); ctx.lineTo(15, -16 + sway);
       ctx.stroke();
-      ctx.strokeStyle = stats.color;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = arcColor;
+      ctx.lineWidth = 2 + tower.level * .22;
       ctx.stroke();
-      glow(15, -16 + sway, stats.color, 22, .9);
+      glow(15, -16 + sway, arcColor, 22 + tower.level * 1.4, .9);
       ctx.fillStyle = "#fff1ff";
       ctx.beginPath();
       ctx.arc(15, -16 + sway, 5, 0, Math.PI * 2);
       ctx.fill();
     } else if (tower.type === "frost") {
       ctx.rotate(angle + Math.PI / 2);
-      glow(0, -3, stats.color, 24, .75 * pulse);
+      ctx.scale(1 + tower.level * .035, 1 + tower.level * .035);
+      glow(0, -3, stats.color, 24 + tower.level * 1.5, .75 * pulse);
       const crystal = new Path2D();
       crystal.moveTo(0, -19); crystal.lineTo(10, -3); crystal.lineTo(6, 9);
       crystal.lineTo(0, 14); crystal.lineTo(-6, 9); crystal.lineTo(-10, -3); crystal.closePath();
@@ -1258,14 +1714,14 @@
       ctx.rotate(angle);
       ctx.fillStyle = isCannon ? "#67544c" : "#aa7949";
       ctx.strokeStyle = "#18201f";
-      ctx.lineWidth = isCannon ? 14 : 11;
+      ctx.lineWidth = isCannon ? 14 + tower.level * .45 : 11;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(-2, 4);
       ctx.lineTo(isCannon ? 23 : 25, 0);
       ctx.stroke();
       ctx.strokeStyle = stats.color;
-      ctx.lineWidth = isCannon ? 6 : 3;
+      ctx.lineWidth = isCannon ? 6 + tower.level * .28 : 3 + tower.level * .15;
       ctx.beginPath();
       ctx.moveTo(0, 3);
       ctx.lineTo(isCannon ? 23 : 25, 0);
@@ -1593,6 +2049,30 @@
       ctx.arc(x, y, r + 4 + Math.sin(now * .01) * 1.5, 0, Math.PI * 2);
       ctx.stroke();
     }
+    if (enemy.shielded || enemy.boss && enemy.shieldUntil > gameTime) {
+      ctx.strokeStyle = "rgba(155,196,255,.88)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, r + 8 + Math.sin(now * .008) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#b9d7ff";
+      ctx.font = "800 7px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("SHIELD", x, y + r + 17);
+    }
+    if (enemy.hidden) {
+      ctx.setLineDash([3, 4]);
+      ctx.strokeStyle = "rgba(195,157,255,.7)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(x, y, r + 5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#d4bdff";
+      ctx.font = "800 7px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("HIDDEN", x, y - r - 11);
+    }
   }
 
   function drawEffects() {
@@ -1600,7 +2080,7 @@
       const progress = 1 - effect.life / effect.maxLife;
       ctx.save();
       ctx.globalAlpha = Math.max(0, 1 - progress);
-      if (effect.type === "lightning") {
+      if (effect.type === "lightning" || effect.type === "beam") {
         if (effect.points.length > 1) {
           ctx.lineJoin = "round";
           ctx.lineCap = "round";
@@ -1617,10 +2097,10 @@
           ctx.shadowColor = effect.color;
           ctx.shadowBlur = 18;
           ctx.strokeStyle = "#fff5ff";
-          ctx.lineWidth = 5;
+          ctx.lineWidth = effect.type === "beam" ? 9 : 5;
           ctx.stroke();
           ctx.strokeStyle = effect.color;
-          ctx.lineWidth = 2;
+          ctx.lineWidth = effect.type === "beam" ? 5 : 2;
           ctx.stroke();
         }
       } else {
@@ -1653,12 +2133,36 @@
     ctx.globalAlpha = 1;
   }
 
+  function drawDamageFields() {
+    for (const field of damageFields) {
+      const alpha = Math.min(.28, .12 + field.duration * .025);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const haze = ctx.createRadialGradient(field.x, field.y, 1, field.x, field.y, field.radius);
+      haze.addColorStop(0, field.color);
+      haze.addColorStop(.62, `${field.color}78`);
+      haze.addColorStop(1, "transparent");
+      ctx.fillStyle = haze;
+      ctx.beginPath();
+      ctx.arc(field.x, field.y, field.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `${field.color}bb`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash(field.towerType === "void" ? [3, 5] : []);
+      ctx.beginPath();
+      ctx.arc(field.x, field.y, field.radius * (.9 + Math.sin(gameTime * 3) * .035), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   function render(now) {
     ctx.drawImage(world, 0, 0);
     drawFireflies(now);
     drawGate();
+    drawDamageFields();
     if (selectedTower) {
-      const range = towers[selectedTower.type].range + selectedTower.level * 10;
+      const range = towers[selectedTower.type].range + selectedTower.level * 4;
       ctx.fillStyle = `${towers[selectedTower.type].color}12`;
       ctx.beginPath();
       ctx.arc(selectedTower.x, selectedTower.y, range, 0, Math.PI * 2);
@@ -1686,11 +2190,30 @@
         ctx.lineWidth = shot.type === "shell" ? 4 : 2;
         ctx.stroke();
       }
-      glow(shot.x, shot.y, shot.color, shot.type === "shell" ? 18 : 13, .95);
-      ctx.fillStyle = "#fff4d6";
-      ctx.beginPath();
-      ctx.arc(shot.x, shot.y, shot.type === "shell" ? 4 : 2.7, 0, Math.PI * 2);
-      ctx.fill();
+      const size = shot.type === "shell" || shot.type === "fireball" || shot.type === "blackHole" ? 5.5 : 3;
+      glow(shot.x, shot.y, shot.color, size * (shot.type === "blackHole" ? 4 : 3), .95);
+      ctx.fillStyle = shot.type === "energyBolt" ? "#ffffff" : shot.color;
+      if (shot.type === "iceShard") {
+        ctx.beginPath();
+        ctx.moveTo(shot.x, shot.y - 7); ctx.lineTo(shot.x + 4, shot.y);
+        ctx.lineTo(shot.x, shot.y + 7); ctx.lineTo(shot.x - 4, shot.y);
+        ctx.closePath(); ctx.fill();
+      } else if (shot.type === "flask") {
+        ctx.fillRect(shot.x - 3, shot.y - 4, 6, 8);
+        ctx.fillStyle = "#dfffe0"; ctx.fillRect(shot.x - 2, shot.y - 6, 4, 2);
+      } else if (shot.type === "slime") {
+        ctx.beginPath(); ctx.ellipse(shot.x, shot.y, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(shot.x, shot.y, size, 0, Math.PI * 2);
+        ctx.fill();
+        if (shot.type === "blackHole") {
+          ctx.fillStyle = "#0d0717";
+          ctx.beginPath();
+          ctx.arc(shot.x, shot.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
       ctx.restore();
     }
     for (const skeleton of summonedSkeletons) {
@@ -1755,7 +2278,7 @@
     mouse = { x: -100, y: -100 };
   });
   canvas.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || state === "intro" || state === "paused" || state === "gameover") return;
+    if (event.button !== 0 || state !== "build" && state !== "wave") return;
     const point = pointFromEvent(event);
     if (selectedType) {
       placeTower(point.x, point.y);
@@ -1775,30 +2298,96 @@
     uiDirty = true;
   });
   ui.pauseButton.addEventListener("click", pauseToggle);
-  ui.soundButton.addEventListener("click", () => {
-    initializeAudio();
-    if (!audioContext) return;
-    soundEnabled = !soundEnabled;
-    if (soundEnabled) playSound("summoner");
+  ui.menuButton.addEventListener("click", () => {
+    if (state === "build" || state === "wave") {
+      pausedFrom = state;
+      returnToCampaign = true;
+    }
+    state = "menu";
+    selectedType = null;
+    selectedTower = null;
     uiDirty = true;
   });
-  ui.overlayButton.addEventListener("click", () => {
-    if (state === "intro") state = "build";
-    else if (state === "paused") state = pausedFrom;
-    else if (state === "gameover" || state === "victory") resetGame();
+  ui.shopButton.addEventListener("click", openShop);
+  ui.soundButton.addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+    if (soundEnabled) initializeAudio();
+    if (soundEnabled) playSound("summoner");
+    saveAccountProgress();
+    uiDirty = true;
+  });
+  ui.overlayContent.addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    if (button.dataset.mode) {
+      selectedMode = button.dataset.mode;
+    } else if (button.dataset.map) {
+      selectedMapKey = button.dataset.map;
+    } else if (button.dataset.buy) {
+      buyTower(button.dataset.buy);
+    } else if (button.dataset.action === "play") {
+      state = "mode-select";
+    } else if (button.dataset.action === "maps") {
+      state = "map-select";
+    } else if (button.dataset.action === "modes") {
+      state = "mode-select";
+    } else if (button.dataset.action === "launch") {
+      currentMode = selectedMode;
+      applyMap(selectedMapKey);
+      resetGame();
+    } else if (button.dataset.action === "home") {
+      state = "menu";
+      selectedType = null;
+    } else if (button.dataset.action === "shop") {
+      openShop();
+    } else if (button.dataset.action === "shop-back") {
+      state = shopReturnState;
+    } else if (button.dataset.action === "settings") {
+      state = "settings";
+    } else if (button.dataset.action === "about") {
+      state = "about";
+    } else if (button.dataset.action === "toggle-sound") {
+      soundEnabled = !soundEnabled;
+      if (soundEnabled) initializeAudio();
+      saveAccountProgress();
+    } else if (button.dataset.action === "toggle-effects") {
+      settingsReducedMotion = !settingsReducedMotion;
+      try {
+        localStorage.setItem("last-light-reduced-effects", String(settingsReducedMotion));
+      } catch (error) {
+        console.warn("Could not save visual-effects preference.", error);
+      }
+    } else if (button.dataset.action === "resume") {
+      state = pausedFrom;
+      returnToCampaign = false;
+    } else if (button.dataset.action === "retry") {
+      resetGame();
+    }
     uiDirty = true;
   });
   window.addEventListener("keydown", (event) => {
     if (event.code === "Escape" && selectedType) {
       selectedType = null;
       uiDirty = true;
+    } else if (event.code === "Escape" && state === "map-select") {
+      state = "mode-select";
+      uiDirty = true;
+    } else if (event.code === "Escape" && state !== "menu") {
+      if (state === "build" || state === "wave") {
+        pausedFrom = state;
+        returnToCampaign = true;
+      }
+      state = "menu";
+      uiDirty = true;
     } else if (event.code === "Space" && state === "build") {
       event.preventDefault();
       startWave();
     } else if (event.key.toLowerCase() === "p") {
       pauseToggle();
-    } else if ("12345".includes(event.key) && state !== "intro" && state !== "gameover") {
+    } else if (/^[1-9]$/.test(event.key) && (state === "build" || state === "wave")) {
       selectTower(Object.keys(towers)[Number(event.key) - 1]);
+    } else if (event.key === "0" && (state === "build" || state === "wave")) {
+      selectTower(Object.keys(towers)[9]);
     }
   });
   window.addEventListener("pointerdown", unlockAudio, { once: true, capture: true });

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#10151e">
-    <meta name="description" content="Last Light is a luminous, atmospheric 100-wave tower defense game with 17 unique bosses. Hold the road. Protect the gate.">
+    <meta name="description" content="Last Light is a tower defense campaign with five modes, five maps, ten towers, and escalating boss battles.">
     <title>Last Light — Tower Defense</title>
     <link rel="stylesheet" href="style.css">
   </head>
@@ -16,6 +16,7 @@
           <span class="brand-name">LAST <span>LIGHT</span></span>
         </a>
         <p class="tagline">THE NIGHT IS COMING. BUILD YOUR DEFENSE.</p>
+        <div class="best-chip">GEMS <strong id="gem-count">0</strong></div>
         <div class="best-chip">PERSONAL BEST <strong id="best-wave">—</strong></div>
       </header>
 
@@ -27,6 +28,7 @@
         <button class="utility-button" id="speed-button" type="button" title="Toggle game speed">▶ 1×</button>
         <button class="utility-button" id="sound-button" type="button" title="Mute game sounds" aria-label="Mute game sounds">♫</button>
         <button class="utility-button" id="pause-button" type="button" title="Pause (P)">Ⅱ</button>
+        <button class="utility-button" id="menu-button" type="button" title="Return to main menu">⌂ MENU</button>
       </section>
 
       <section class="layout">
@@ -36,15 +38,13 @@
             <div class="boss-alert" id="boss-alert" role="status"></div>
             <div class="game-overlay" id="game-overlay">
               <div class="overlay-card">
-                <p class="overlay-eyebrow" id="overlay-eyebrow">A DEFENSE GAME ABOUT HOLDING ON</p>
-                <h1 id="overlay-title">Last Light</h1>
-                <p id="overlay-copy">Five towers. One winding road. Legendary bosses in the dark.</p>
-                <button class="primary-button" id="overlay-button" type="button">ENTER THE FIELD</button>
+                <div id="overlay-content"></div>
               </div>
             </div>
           </div>
           <div class="battle-footer">
             <p><span class="hint-dot"></span><span id="message">Choose a defender, then place it on the grass.</span></p>
+            <span class="campaign-label" id="campaign-label">Choose a campaign</span>
             <div class="wave-controls">
               <button class="auto-wave-button" id="auto-wave-button" type="button" aria-pressed="false" title="Automatically start the next wave after each wave is cleared">AUTO: OFF</button>
               <button class="wave-button" id="wave-button" type="button"><span>⚔</span> START WAVE <strong id="next-wave">1</strong></button>
@@ -59,7 +59,7 @@
               <span class="build-count" id="build-count">0 BUILT</span>
             </div>
             <div class="tower-list" id="tower-list"></div>
-            <p class="key-hint">QUICK BUILD <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></p>
+            <p class="key-hint">QUICK BUILD <kbd>1</kbd>–<kbd>9</kbd></p>
           </section>
 
           <section class="panel inspect-panel">
@@ -72,7 +72,7 @@
           </section>
 
           <section class="panel threat-panel">
-            <div class="panel-heading"><div><p class="section-kicker">THE DARKNESS GATHERS</p><h2>Boss intelligence</h2></div><span class="boss-count">TO WAVE 100</span></div>
+            <div class="panel-heading"><div><p class="section-kicker">THE DARKNESS GATHERS</p><h2>Boss intelligence</h2></div><span class="boss-count" id="boss-count">CAMPAIGN</span></div>
             <div class="next-boss-card">
               <div class="next-boss-meta"><span id="next-boss-category">CYBERPUNK & SCI-FI</span><strong id="next-boss-wave">WAVE 5</strong></div>
               <h3 id="next-boss-name">VEX-9</h3>
@@ -81,11 +81,12 @@
               <small id="boss-progress-label">Five waves to the next boss</small>
             </div>
             <details class="boss-roster-disclosure">
-              <summary>View all 17 bosses</summary>
+              <summary>View boss roster</summary>
               <div class="boss-list" id="boss-roster"></div>
             </details>
           </section>
-          <p class="save-note">BEST WAVE SAVED ON THIS DEVICE</p>
+          <button class="shop-link" id="shop-button" type="button">✦ OPEN TOWER SHOP · <span id="shop-gems">0</span> GEMS</button>
+          <p class="save-note">BEST WAVE & GEMS SAVED ON THIS DEVICE</p>
         </aside>
       </section>
 

@@ -2,6 +2,10 @@
 
 Last Light is a browser-based tower defense game. The visuals, animation, and game logic run in JavaScript and Canvas in your browser. `game.py` is the older standalone Pygame version and is not used by this browser game.
 
+Choose from five enemy-difficulty modes: Easy (30 waves), Intermediate (35), Molten (35), Void (40), and Frost (50). Then choose one of five maps rated from one to five stars; map stars represent terrain challenge and are separate from mode difficulty. Bosses arrive on waves 15, 20, 30, and the campaign's final wave.
+
+Ten towers can be upgraded to level 10, with per-tower placement limits. Five specialist towers are permanent gem unlocks in the Tower Shop. Gems are earned by completing a campaign and remain separate from battle gold, which resets for each campaign. Gems, unlocks, sound, and best wave are saved in the current browser on the current device.
+
 ## Run
 
 Play the game online at **[Last Light — Tower Defense](https://kaizen02403x.github.io/Tower-defence-game/)** once the GitHub Pages deployment completes.
@@ -18,7 +22,7 @@ To let friends play from Macs on the same Wi-Fi network, keep the server running
 
 ## Play
 
-Choose a tower from the arsenal, then click an open patch of grass to deploy it. Towers automatically attack enemies within range. Select a placed tower to upgrade or sell it, and start each wave when you're ready. Turn **AUTO: ON** beside the wave button to automatically begin the next wave shortly after each wave is cleared; turn it off during the intermission to stop the next wave. The campaign has 100 increasingly difficult waves, with a boss encounter every fifth wave. Seventeen distinct bosses bring abilities such as tower shutdowns, armor, regeneration, phase jumps, skeleton attacks, and reinforcements; the final wave features VEX-9.
+Choose a tower from the arsenal, then click an open patch of grass to deploy it. Towers automatically attack enemies within range. Select a placed tower to upgrade it, choose an available attack path, or sell it. Start each wave when you're ready. Turn **AUTO: ON** beside the wave button to automatically begin the next wave shortly after each wave is cleared; turn it off during the intermission to stop the next wave. Enemies grow faster and tougher as waves progress; later Void and Frost waves introduce shields and hidden enemies.
 
 The **Soulweaver** raises up to three lower-health, lower-damage skeleton defenders at the gate. They march along the road toward enemies, fight them, and have visible health bars. Enemies stop to attack skeletons in melee; skeletons die when their HP runs out, and the Soulweaver can summon replacements. Bosses require adapting tower placement and upgrades to their abilities.
 
@@ -26,7 +30,7 @@ Elemental towers have distinct synthesized sound effects: Stormcoil crackles wit
 
 | Input | Action |
 | --- | --- |
-| Click a tower or press `1`–`5` | Select a defender |
+| Click a tower or press `1`–`9`, `0` | Select a defender |
 | Click open grass | Place the selected tower |
 | Click a placed tower | Inspect, upgrade, or sell it |
 | `Space` | Start the next wave |
@@ -34,5 +38,6 @@ Elemental towers have distinct synthesized sound effects: Stormcoil crackles wit
 | `P` | Pause or resume |
 | Music-note button | Mute or enable sounds |
 | Speed button | Toggle 1×/2× speed |
+| Menu button | Return to the main menu |
 
 Your best wave is saved in this browser on this device.
