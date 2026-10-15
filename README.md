@@ -2,7 +2,17 @@
 
 Last Light is a browser-based tower defense game. The visuals, animation, and game logic run in JavaScript and Canvas in your browser. `game.py` is the older standalone Pygame version and is not used by this browser game.
 
-Choose from five enemy-difficulty modes: Easy (30 waves), Intermediate (35), Molten (35), Void (40), and Frost (50). Then choose one of five maps rated from one to five stars; map stars represent terrain challenge and are separate from mode difficulty. Bosses arrive on waves 15, 20, 30, and the campaign's final wave.
+Choose from five enemy-difficulty modes: Easy (30 waves), Intermediate (35), Molten (35), Void (40), and Frost (50). Then choose one of five visually distinct maps with its own route and terrain, rated from one to five terrain stars:
+
+| Map | Terrain | Stars |
+| --- | --- | --- |
+| Verdant Crossing | Open grassland | 1 |
+| Ember Pass | Volcanic ridges and glowing fissures | 2 |
+| Frostfall Ridge | Snowfields, ice, and mountain pines | 3 |
+| Abyssal Reach | Corrupted voidlands and violet crystals | 4 |
+| The Shattered Citadel | Ruined fortress and broken stonework | 5 |
+
+Map stars describe the terrain and route layout only; they do not change enemy strength or speed. Enemy difficulty comes from the selected mode. Bosses arrive on waves 15, 20, 30, and the campaign's final wave.
 
 Ten towers can be upgraded to level 10, with per-tower placement limits. Five specialist towers are permanent gem unlocks in the Tower Shop. Gems are earned by completing a campaign and remain separate from battle gold, which resets for each campaign. Gems, unlocks, sound, and best wave are saved in the current browser on the current device.
 

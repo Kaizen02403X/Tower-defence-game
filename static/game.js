@@ -6,11 +6,11 @@
   const W = 960;
   const H = 600;
   const maps = {
-    meadow: { name: "Verdant Crossing", stars: 1, scale: 1, tint: "#294b46", route: [[-24, 145], [205, 145], [205, 365], [455, 365], [455, 173], [705, 173], [705, 455], [984, 455]] },
-    ember: { name: "Ember Pass", stars: 2, scale: 1.05, tint: "#604238", route: [[-24, 270], [165, 270], [165, 105], [385, 105], [385, 470], [610, 470], [610, 190], [820, 190], [820, 455], [984, 455]] },
-    frostfall: { name: "Frostfall Ridge", stars: 3, scale: 1.1, tint: "#35515a", route: [[-24, 78], [285, 78], [285, 275], [85, 275], [85, 505], [520, 505], [520, 130], [760, 130], [760, 455], [984, 455]] },
-    abyss: { name: "Abyssal Reach", stars: 4, scale: 1.16, tint: "#39334e", route: [[-24, 455], [220, 455], [220, 155], [430, 155], [430, 435], [660, 435], [660, 105], [850, 105], [850, 455], [984, 455]] },
-    citadel: { name: "The Shattered Citadel", stars: 5, scale: 1.23, tint: "#55433b", route: [[-24, 300], [155, 300], [155, 95], [365, 95], [365, 305], [575, 305], [575, 500], [790, 500], [790, 455], [984, 455]] },
+    meadow: { name: "Verdant Crossing", stars: 1, theme: "meadow", terrain: "Open grassland", tint: "#294b46", colors: ["#304e3e", "#294b46", "#203d40"], road: ["#172b2c", "#283b39", "#655d4d", "#a28e6c", "#b29e77"], route: [[-24, 145], [205, 145], [205, 365], [455, 365], [455, 173], [705, 173], [705, 455], [984, 455]] },
+    ember: { name: "Ember Pass", stars: 2, theme: "ember", terrain: "Volcanic ridges", tint: "#604238", colors: ["#56362e", "#432d2b", "#25272a"], road: ["#17191d", "#292a2d", "#414044", "#655b59", "#b77548"], route: [[-24, 270], [165, 270], [165, 105], [385, 105], [385, 470], [610, 470], [610, 190], [820, 190], [820, 455], [984, 455]] },
+    frostfall: { name: "Frostfall Ridge", stars: 3, theme: "frost", terrain: "Snowbound mountain passes", tint: "#35515a", colors: ["#b6d2d7", "#7398a5", "#344f61"], road: ["#344958", "#546875", "#8a9ca0", "#c2d2d0", "#e5eee8"], route: [[-24, 78], [285, 78], [285, 275], [85, 275], [85, 505], [520, 505], [520, 130], [760, 130], [760, 455], [984, 455]] },
+    abyss: { name: "Abyssal Reach", stars: 4, theme: "abyss", terrain: "Corrupted voidlands", tint: "#39334e", colors: ["#332c48", "#29263f", "#171d30"], road: ["#171624", "#28243b", "#494057", "#746088", "#a888c2"], route: [[-24, 455], [220, 455], [220, 155], [430, 155], [430, 435], [660, 435], [660, 105], [850, 105], [850, 455], [984, 455]] },
+    citadel: { name: "The Shattered Citadel", stars: 5, theme: "citadel", terrain: "Ruined fortress approaches", tint: "#55433b", colors: ["#5a5046", "#443e3b", "#292d32"], road: ["#202528", "#393b3b", "#62584c", "#88775e", "#b09a76"], route: [[-24, 300], [155, 300], [155, 95], [365, 95], [365, 305], [575, 305], [575, 500], [790, 500], [790, 455], [984, 455]] },
   };
   const modes = {
     easy: { name: "Easy", waves: 30, scale: .72, reward: 25, description: "A gentler defense with fewer, slower enemies." },
@@ -136,90 +136,140 @@
   const terrain = world.getContext("2d");
 
   function drawStaticWorld() {
+    let terrainSeed = Object.keys(maps).indexOf(currentMapKey) + 1;
+    const terrainRandom = () => {
+      terrainSeed = (terrainSeed * 16807) % 2147483647;
+      return (terrainSeed - 1) / 2147483646;
+    };
+    const map = maps[currentMapKey];
+    const avoidRoute = (x, y, distance = 55) => distanceToRoute(x, y) < distance;
+    const drawPolygon = (points, fill, stroke) => {
+      terrain.beginPath();
+      points.forEach(([x, y], index) => {
+        if (!index) terrain.moveTo(x, y);
+        else terrain.lineTo(x, y);
+      });
+      terrain.closePath();
+      terrain.fillStyle = fill;
+      terrain.fill();
+      if (stroke) {
+        terrain.strokeStyle = stroke;
+        terrain.stroke();
+      }
+    };
     terrain.clearRect(0, 0, W, H);
     const ground = terrain.createLinearGradient(0, 0, W, H);
-    ground.addColorStop(0, maps[currentMapKey].tint);
-    ground.addColorStop(.48, "#294b46");
-    ground.addColorStop(1, "#203d40");
+    map.colors.forEach((color, index) => ground.addColorStop(index / (map.colors.length - 1), color));
     terrain.fillStyle = ground;
     terrain.fillRect(0, 0, W, H);
 
-    for (let i = 0; i < 130; i++) {
-      const x = random() * W;
-      const y = random() * H;
-      const radius = 12 + random() * 65;
-      if (distanceToRoute(x, y) < 47) continue;
-      const patch = terrain.createRadialGradient(x, y, 0, x, y, radius);
-      patch.addColorStop(0, i % 3 ? "rgba(105,146,92,.09)" : "rgba(110,133,87,.08)");
-      patch.addColorStop(1, "rgba(49,83,67,0)");
-      terrain.fillStyle = patch;
-      terrain.beginPath();
-      terrain.arc(x, y, radius, 0, Math.PI * 2);
-      terrain.fill();
+    for (let i = 0; i < 1700; i++) {
+      const x = terrainRandom() * W;
+      const y = terrainRandom() * H;
+      if (avoidRoute(x, y, 42)) continue;
+      const shade = terrainRandom();
+      terrain.fillStyle = map.theme === "frost"
+        ? `rgba(230,248,255,${.035 + shade * .11})`
+        : map.theme === "ember"
+          ? `rgba(255,${100 + Math.floor(shade * 55)},65,${.025 + shade * .07})`
+          : map.theme === "abyss"
+            ? `rgba(183,115,255,${.025 + shade * .075})`
+            : map.theme === "citadel"
+              ? `rgba(221,190,143,${.025 + shade * .08})`
+              : `rgba(133,190,121,${.035 + shade * .08})`;
+      terrain.fillRect(x, y, 1 + terrainRandom() * 2.5, 1 + terrainRandom() * 2.5);
     }
 
-    for (let i = 0; i < 2500; i++) {
-      const x = random() * W;
-      const y = random() * H;
-      if (distanceToRoute(x, y) < 39) continue;
-      const shade = Math.floor(65 + random() * 50);
-      terrain.fillStyle = `rgba(${shade - 12},${shade + 14},${shade - 5},${.08 + random() * .13})`;
-      terrain.fillRect(x, y, 1 + random() * 2, 1 + random() * 2);
-    }
-
-    for (let i = 0; i < 39; i++) {
-      const x = 24 + random() * (W - 48);
-      const y = 24 + random() * (H - 48);
-      if (distanceToRoute(x, y) < 75) continue;
-      const kind = random();
-      terrain.fillStyle = "rgba(15,31,30,.26)";
-      terrain.beginPath();
-      terrain.ellipse(x, y + 6, 17, 7, 0, 0, Math.PI * 2);
-      terrain.fill();
-      if (kind < .48) {
-        for (const [ox, oy, radius, shade] of [[-8, 0, 9, "#355c4c"], [0, -5, 12, "#426b52"], [10, 0, 8, "#315344"]]) {
-          terrain.fillStyle = shade;
-          terrain.beginPath();
-          terrain.arc(x + ox, y + oy, radius, 0, Math.PI * 2);
-          terrain.fill();
-          terrain.fillStyle = "rgba(168,207,134,.2)";
-          terrain.beginPath();
-          terrain.arc(x + ox - 3, y + oy - 4, 3, 0, Math.PI * 2);
-          terrain.fill();
+    if (map.theme === "meadow") {
+      for (let i = 0; i < 40; i++) {
+        const x = 24 + terrainRandom() * (W - 48);
+        const y = 24 + terrainRandom() * (H - 48);
+        if (avoidRoute(x, y, 72)) continue;
+        terrain.fillStyle = "rgba(15,31,30,.3)";
+        terrain.beginPath(); terrain.ellipse(x, y + 7, 20, 8, 0, 0, Math.PI * 2); terrain.fill();
+        for (const [ox, oy, radius, shade] of [[-9, 0, 10, "#355c4c"], [0, -7, 14, "#426b52"], [11, 0, 9, "#315344"]]) {
+          terrain.fillStyle = shade; terrain.beginPath(); terrain.arc(x + ox, y + oy, radius, 0, Math.PI * 2); terrain.fill();
+          terrain.fillStyle = "rgba(168,207,134,.22)"; terrain.beginPath(); terrain.arc(x + ox - 3, y + oy - 4, 3, 0, Math.PI * 2); terrain.fill();
         }
-      } else if (kind < .79) {
-        terrain.fillStyle = "#52645c";
-        terrain.beginPath();
-        terrain.moveTo(x - 13, y + 4);
-        terrain.lineTo(x - 10, y - 5);
-        terrain.lineTo(x - 2, y - 11);
-        terrain.lineTo(x + 10, y - 7);
-        terrain.lineTo(x + 14, y + 3);
-        terrain.lineTo(x + 6, y + 8);
-        terrain.closePath();
-        terrain.fill();
-        terrain.strokeStyle = "rgba(188,196,158,.46)";
-        terrain.beginPath();
-        terrain.moveTo(x - 9, y - 4);
-        terrain.lineTo(x - 2, y - 10);
-        terrain.lineTo(x + 5, y - 7);
-        terrain.stroke();
-      } else {
-        terrain.fillStyle = "#286267";
-        terrain.beginPath();
-        terrain.moveTo(x, y - 14);
-        terrain.lineTo(x + 8, y);
-        terrain.lineTo(x, y + 12);
-        terrain.lineTo(x - 8, y);
-        terrain.closePath();
-        terrain.fill();
-        terrain.strokeStyle = "#89d5c6";
-        terrain.stroke();
-        terrain.strokeStyle = "rgba(235,255,223,.75)";
-        terrain.beginPath();
-        terrain.moveTo(x, y - 9);
-        terrain.lineTo(x, y + 5);
-        terrain.stroke();
+      }
+      for (let i = 0; i < 360; i++) {
+        const x = terrainRandom() * W; const y = terrainRandom() * H;
+        if (avoidRoute(x, y, 48)) continue;
+        terrain.strokeStyle = `rgba(148,185,123,${.16 + terrainRandom() * .25})`;
+        terrain.beginPath(); terrain.moveTo(x, y); terrain.lineTo(x + (terrainRandom() - .5) * 8, y - 3 - terrainRandom() * 7); terrain.stroke();
+      }
+    } else if (map.theme === "ember") {
+      for (let i = 0; i < 72; i++) {
+        const x = terrainRandom() * W; const y = terrainRandom() * H;
+        if (avoidRoute(x, y, 70)) continue;
+        const length = 18 + terrainRandom() * 48;
+        terrain.beginPath(); terrain.moveTo(x, y);
+        terrain.lineTo(x + (terrainRandom() - .5) * 18, y - length * .35);
+        terrain.lineTo(x + (terrainRandom() - .5) * 20, y - length * .72);
+        terrain.lineTo(x + (terrainRandom() - .5) * 16, y - length);
+        terrain.strokeStyle = "rgba(15,16,19,.85)"; terrain.lineWidth = 5 + terrainRandom() * 5; terrain.stroke();
+        terrain.strokeStyle = `rgba(255,${90 + Math.floor(terrainRandom() * 75)},35,.${35 + Math.floor(terrainRandom() * 35)})`;
+        terrain.lineWidth = 1.5; terrain.stroke();
+      }
+      for (let i = 0; i < 24; i++) {
+        const x = terrainRandom() * W; const y = terrainRandom() * H;
+        if (avoidRoute(x, y, 76)) continue;
+        const size = 12 + terrainRandom() * 25;
+        drawPolygon([[x - size, y + size * .35], [x - size * .7, y - size * .5], [x - size * .15, y - size], [x + size * .75, y - size * .55], [x + size, y + size * .4]], "#302a2a", "#785147");
+        terrain.strokeStyle = "rgba(255,153,95,.45)"; terrain.beginPath(); terrain.moveTo(x - size * .5, y - size * .28); terrain.lineTo(x, y - size * .75); terrain.stroke();
+      }
+    } else if (map.theme === "frost") {
+      for (let i = 0; i < 85; i++) {
+        const x = terrainRandom() * W; const y = terrainRandom() * H;
+        if (avoidRoute(x, y, 68)) continue;
+        const radius = 10 + terrainRandom() * 32;
+        terrain.fillStyle = `rgba(174,231,244,${.07 + terrainRandom() * .1})`;
+        terrain.beginPath(); terrain.ellipse(x, y, radius, radius * .58, terrainRandom() * Math.PI, 0, Math.PI * 2); terrain.fill();
+        terrain.strokeStyle = "rgba(224,250,255,.3)"; terrain.beginPath(); terrain.moveTo(x - radius * .55, y); terrain.lineTo(x + radius * .55, y); terrain.stroke();
+      }
+      for (let i = 0; i < 27; i++) {
+        const x = terrainRandom() * W; const y = terrainRandom() * H;
+        if (avoidRoute(x, y, 82)) continue;
+        const size = 15 + terrainRandom() * 18;
+        terrain.fillStyle = "rgba(17,42,56,.35)";
+        terrain.beginPath(); terrain.moveTo(x - size, y + size); terrain.lineTo(x, y - size * 1.5); terrain.lineTo(x + size, y + size); terrain.closePath(); terrain.fill();
+        terrain.fillStyle = "rgba(34,73,84,.72)";
+        terrain.beginPath(); terrain.moveTo(x - size * .7, y + size * .25); terrain.lineTo(x, y - size); terrain.lineTo(x + size * .7, y + size * .25); terrain.closePath(); terrain.fill();
+        terrain.strokeStyle = "rgba(222,249,255,.68)"; terrain.beginPath(); terrain.moveTo(x, y - size * 1.5); terrain.lineTo(x, y + size * .45); terrain.stroke();
+      }
+    } else if (map.theme === "abyss") {
+      for (let i = 0; i < 26; i++) {
+        const x = terrainRandom() * W; const y = terrainRandom() * H;
+        if (avoidRoute(x, y, 78)) continue;
+        const radius = 18 + terrainRandom() * 34;
+        const pool = terrain.createRadialGradient(x, y, 1, x, y, radius);
+        pool.addColorStop(0, "rgba(160,74,230,.46)"); pool.addColorStop(.7, "rgba(87,50,142,.22)"); pool.addColorStop(1, "rgba(60,40,110,0)");
+        terrain.fillStyle = pool; terrain.beginPath(); terrain.ellipse(x, y, radius, radius * .48, terrainRandom(), 0, Math.PI * 2); terrain.fill();
+        terrain.strokeStyle = "rgba(197,135,255,.45)"; terrain.lineWidth = 1; terrain.beginPath(); terrain.ellipse(x, y, radius * .65, radius * .32, -terrainRandom(), 0, Math.PI * 2); terrain.stroke();
+      }
+      for (let i = 0; i < 22; i++) {
+        const x = terrainRandom() * W; const y = terrainRandom() * H;
+        if (avoidRoute(x, y, 76)) continue;
+        const size = 9 + terrainRandom() * 18;
+        drawPolygon([[x, y - size * 1.8], [x + size * .48, y - size * .3], [x + size * .3, y + size], [x - size * .35, y + size * .75], [x - size * .5, y - size * .2]], "#49365f", "#bc82eb");
+        terrain.strokeStyle = "rgba(231,190,255,.55)"; terrain.beginPath(); terrain.moveTo(x, y - size); terrain.lineTo(x, y + size * .55); terrain.stroke();
+      }
+    } else {
+      terrain.strokeStyle = "rgba(225,199,156,.095)"; terrain.lineWidth = 1;
+      for (let x = 22; x < W; x += 52) {
+        terrain.beginPath(); terrain.moveTo(x, 0); terrain.lineTo(x, H); terrain.stroke();
+      }
+      for (let y = 18; y < H; y += 48) {
+        terrain.beginPath(); terrain.moveTo(0, y); terrain.lineTo(W, y); terrain.stroke();
+      }
+      for (let i = 0; i < 31; i++) {
+        const x = terrainRandom() * W; const y = terrainRandom() * H;
+        if (avoidRoute(x, y, 82)) continue;
+        const width = 18 + terrainRandom() * 28; const height = 24 + terrainRandom() * 42;
+        terrain.fillStyle = "rgba(17,22,26,.4)"; terrain.fillRect(x - width / 2 + 4, y - height / 2 + 7, width, height);
+        terrain.fillStyle = "#4b4944"; terrain.fillRect(x - width / 2, y - height / 2, width, height);
+        terrain.fillStyle = "rgba(204,177,134,.42)"; terrain.fillRect(x - width / 2 + 4, y - height / 2 + 4, 3, height * .72);
+        terrain.fillStyle = "rgba(25,30,33,.42)"; terrain.fillRect(x - width / 2 + 8, y - height / 2 + height * .48, width * .45, height * .42);
       }
     }
 
@@ -231,51 +281,39 @@
     terrain.save();
     terrain.shadowColor = "rgba(7,19,24,.75)";
     terrain.shadowBlur = 24;
-    terrain.strokeStyle = "#172b2c";
+    terrain.strokeStyle = map.road[0];
     terrain.lineWidth = 84;
     terrain.stroke(road);
     terrain.restore();
-    terrain.strokeStyle = "#283b39";
+    terrain.strokeStyle = map.road[1];
     terrain.lineWidth = 78;
     terrain.stroke(road);
-    terrain.strokeStyle = "#655d4d";
+    terrain.strokeStyle = map.road[2];
     terrain.lineWidth = 68;
     terrain.stroke(road);
-    terrain.strokeStyle = "#a28e6c";
+    terrain.strokeStyle = map.road[3];
     terrain.lineWidth = 56;
     terrain.stroke(road);
-    terrain.strokeStyle = "#b29e77";
+    terrain.strokeStyle = map.road[4];
     terrain.lineWidth = 2;
     terrain.stroke(road);
     terrain.setLineDash([2, 18]);
     terrain.lineWidth = 2;
-    terrain.strokeStyle = "rgba(51,42,35,.7)";
+    terrain.strokeStyle = map.theme === "frost" ? "rgba(50,82,103,.6)" : map.theme === "abyss" ? "rgba(24,18,36,.72)" : "rgba(51,42,35,.7)";
     terrain.stroke(road);
     terrain.setLineDash([]);
 
     for (let progress = 10; progress < routeLength - 15; progress += 24) {
       const [x, y] = positionOnRoute(progress);
-      terrain.fillStyle = random() > .5 ? "rgba(55,45,36,.34)" : "rgba(228,200,151,.22)";
+      terrain.fillStyle = terrainRandom() > .5 ? "rgba(55,45,36,.34)" : map.theme === "frost" ? "rgba(240,253,255,.38)" : map.theme === "abyss" ? "rgba(192,137,236,.3)" : "rgba(228,200,151,.22)";
       terrain.beginPath();
-      terrain.ellipse(x, y, 2 + random() * 2, 1 + random() * 1.5, random() * Math.PI, 0, Math.PI * 2);
+      terrain.ellipse(x, y, 2 + terrainRandom() * 2, 1 + terrainRandom() * 1.5, terrainRandom() * Math.PI, 0, Math.PI * 2);
       terrain.fill();
-    }
-
-    for (let i = 0; i < 320; i++) {
-      const x = random() * W;
-      const y = random() * H;
-      if (distanceToRoute(x, y) < 52) continue;
-      terrain.strokeStyle = `rgba(${random() > .5 ? "148,185,123" : "86,139,105"},${.14 + random() * .24})`;
-      terrain.lineWidth = 1;
-      terrain.beginPath();
-      terrain.moveTo(x, y);
-      terrain.lineTo(x + (random() - .5) * 7, y - 3 - random() * 6);
-      terrain.stroke();
     }
 
     const shade = terrain.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 650);
     shade.addColorStop(0, "rgba(5,13,18,0)");
-    shade.addColorStop(1, "rgba(5,13,18,.4)");
+    shade.addColorStop(1, map.theme === "frost" ? "rgba(11,24,38,.26)" : map.theme === "ember" ? "rgba(21,8,7,.45)" : map.theme === "abyss" ? "rgba(8,5,19,.5)" : "rgba(5,13,18,.4)");
     terrain.fillStyle = shade;
     terrain.fillRect(0, 0, W, H);
   }
@@ -488,7 +526,7 @@
   function makeEnemy(index, boss = false) {
     const id = nextEntityId++;
     const [x, y] = positionOnRoute(0);
-    const enemyScale = modes[currentMode].scale * maps[currentMapKey].scale;
+    const enemyScale = modes[currentMode].scale;
     if (boss) {
       const info = bossForWave(wave);
       const armor = (info.ability === "armor" ? .38 : info.ability === "shield" ? .16 : info.ability === "overload" ? .1 : 0) + Math.max(0, modes[currentMode].scale - 1) * .08;
@@ -515,7 +553,7 @@
     return {
       id, type, ...stats, hp, maxHp: hp,
       armor: shielded ? .3 : 0, shielded, hidden,
-      speed: stats.speed + Math.min(wave, 15) * (.7 + modes[currentMode].scale * .3) + maps[currentMapKey].stars * .8,
+      speed: stats.speed + Math.min(wave, 15) * (.7 + modes[currentMode].scale * .3),
       progress: 0, x, y, slowUntil: 0, slowFactor: 1, attackTimer: 0, meleeTimer: 0,
     };
   }
@@ -1228,9 +1266,10 @@
         <p class="overlay-copy"><strong>${modes[selectedMode].name} · ${modes[selectedMode].waves} waves</strong> sets enemy difficulty. Map stars rate terrain challenge only.</p>
         <div class="choice-grid map-grid">${Object.entries(maps).map(([key, map]) => `
           <button class="choice-card map-choice${selectedMapKey === key ? " is-selected" : ""}" data-map="${key}" aria-pressed="${selectedMapKey === key}">
+            <span class="map-preview map-preview-${map.theme}" aria-hidden="true"><svg viewBox="0 0 960 600" preserveAspectRatio="none"><path class="map-preview-shadow" d="${map.route.map(([x, y], index) => `${index ? "L" : "M"}${x} ${y}`).join(" ")}"></path><path class="map-preview-road" d="${map.route.map(([x, y], index) => `${index ? "L" : "M"}${x} ${y}`).join(" ")}"></path></svg></span>
             <strong>${map.name}</strong><span class="map-stars" aria-label="${map.stars} star map">${"★".repeat(map.stars)}${"☆".repeat(5 - map.stars)}</span>
-            <small>Map difficulty · ${map.stars}/5 stars</small></button>`).join("")}</div>
-        <p class="map-rules">Enemy mode: ${modes[selectedMode].name} · Map difficulty: ${maps[selectedMapKey].stars}/5 stars. These are separate settings.</p>
+            <small>${map.terrain} · ${map.stars}/5 terrain stars</small></button>`).join("")}</div>
+        <p class="map-rules">Enemy mode: ${modes[selectedMode].name} · Map stars describe terrain and route layout only; they do not change enemy strength.</p>
         <div class="overlay-actions"><button class="secondary-button" data-action="modes">← CHANGE MODE</button><button class="primary-button" data-action="launch">START CAMPAIGN</button></div>`;
     } else if (state === "shop") {
       ui.overlayContent.innerHTML = `
