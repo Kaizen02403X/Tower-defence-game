@@ -305,7 +305,7 @@
 
     for (let progress = 10; progress < routeLength - 15; progress += 24) {
       const [x, y] = positionOnRoute(progress);
-      terrain.fillStyle = terrainRandom() > .5 ? "rgba(55,45,36,.34)" : map.theme === "frost" ? "rgba(240,253,255,.38)" : map.theme === "abyss" ? "rgba(192,137,236,.3)" : "rgba(228,200,151,.22)";
+      terrain.fillStyle = map.theme === "frost" ? "rgba(240,253,255,.38)" : terrainRandom() > .5 ? "rgba(55,45,36,.34)" : map.theme === "abyss" ? "rgba(192,137,236,.3)" : "rgba(228,200,151,.22)";
       terrain.beginPath();
       terrain.ellipse(x, y, 2 + terrainRandom() * 2, 1 + terrainRandom() * 1.5, terrainRandom() * Math.PI, 0, Math.PI * 2);
       terrain.fill();
@@ -530,12 +530,12 @@
     if (boss) {
       const info = bossForWave(wave);
       const armor = (info.ability === "armor" ? .38 : info.ability === "shield" ? .16 : info.ability === "overload" ? .1 : 0) + Math.max(0, modes[currentMode].scale - 1) * .08;
-      const hp = Math.round((760 + wave * 40 + wave ** 2 * .55) * enemyScale);
+      const hp = Math.round((760 + wave * 40 + wave ** 2 * .55) * enemyScale * 1.2);
       return {
         id, name: info.name, category: info.category, description: info.description,
         boss: true, ability: info.ability, color: info.color, symbol: info.symbol,
         trait: info.trait, armor, hp, maxHp: hp, progress: 0,
-        x, y, speed: 32 + Math.min(wave, 45) * .3, radius: 26,
+        x, y, speed: (32 + Math.min(wave, 45) * .3) * 1.1 * (.85 + enemyScale * .15), radius: 26,
         reward: 90 + wave * 3, attackTimer: 0, specialTimer: 0, meleeTimer: 0,
         slowUntil: 0, slowFactor: 1, burst: 0, phaseUntil: 0, shieldUntil: 0,
         summonCount: 0,
@@ -547,13 +547,13 @@
           : index % 7 === 1 && wave >= 3 ? "brute" : "shade";
     const stats = enemies[type];
     const elapsedWaves = Math.max(0, wave - 1);
-    const hp = Math.ceil(stats.hp * (1 + elapsedWaves * .12 + elapsedWaves ** 2 * .0015) * enemyScale);
+    const hp = Math.ceil(stats.hp * (1 + elapsedWaves * .12 + elapsedWaves ** 2 * .0015) * enemyScale * 1.18);
     const shielded = wave >= 8 && wave % 4 === 0 && (currentMode === "void" || currentMode === "frost");
     const hidden = wave >= 12 && wave % 6 === 0 && (currentMode === "void" || currentMode === "frost");
     return {
       id, type, ...stats, hp, maxHp: hp,
       armor: shielded ? .3 : 0, shielded, hidden,
-      speed: stats.speed + Math.min(wave, 15) * (.7 + modes[currentMode].scale * .3),
+      speed: (stats.speed + Math.min(wave, 15) * (.7 + modes[currentMode].scale * .3)) * 1.12,
       progress: 0, x, y, slowUntil: 0, slowFactor: 1, attackTimer: 0, meleeTimer: 0,
     };
   }
@@ -563,7 +563,7 @@
     autoWaveTimer = 0;
     state = "wave";
     wave++;
-    const count = Math.ceil(7 + wave * 1.8);
+    const count = Math.ceil((7 + wave * 1.8) * 1.1);
     const isBossWave = bossWavesForMode().includes(wave);
     spawnQueue = Array.from({ length: count }, (_, index) => ({ index, boss: isBossWave && index === count - 2 }));
     spawnTimer = .25;
@@ -1074,7 +1074,7 @@
     if (x < 28 || x > 932 || y < 28 || y > 572 || distanceToRoute(x, y) < 49) return false;
     if (placedTowers.some((tower) => Math.hypot(tower.x - x, tower.y - y) < 47)) return false;
     const stats = towers[type];
-    return gold >= stats.cost && state === "build" && placedTowers.filter((tower) => tower.type === type).length < stats.limit;
+    return gold >= stats.cost && (state === "build" || state === "wave") && placedTowers.filter((tower) => tower.type === type).length < stats.limit;
   }
 
   function placeTower(x, y) {

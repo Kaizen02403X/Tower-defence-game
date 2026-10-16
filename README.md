@@ -32,7 +32,7 @@ To let friends play from Macs on the same Wi-Fi network, keep the server running
 
 ## Play
 
-Choose a tower from the arsenal, then click an open patch of grass to deploy it. Towers automatically attack enemies within range. Select a placed tower to upgrade it, choose an available attack path, or sell it. Start each wave when you're ready. Turn **AUTO: ON** beside the wave button to automatically begin the next wave shortly after each wave is cleared; turn it off during the intermission to stop the next wave. Enemies grow faster and tougher as waves progress; later Void and Frost waves introduce shields and hidden enemies.
+Choose a tower from the arsenal, then click an open patch of grass to deploy it. Towers can be placed between waves or during an active wave, so you can reinforce your defenses as the battle unfolds. Towers automatically attack enemies within range. Select a placed tower to upgrade it, choose an available attack path, or sell it. Start each wave when you're ready. Turn **AUTO: ON** beside the wave button to automatically begin the next wave shortly after each wave is cleared; turn it off during the intermission to stop the next wave. Enemies are tougher and faster, and later Void and Frost waves introduce shields and hidden enemies.
 
 The **Soulweaver** raises up to three lower-health, lower-damage skeleton defenders at the gate. They march along the road toward enemies, fight them, and have visible health bars. Enemies stop to attack skeletons in melee; skeletons die when their HP runs out, and the Soulweaver can summon replacements. Bosses require adapting tower placement and upgrades to their abilities.
 
