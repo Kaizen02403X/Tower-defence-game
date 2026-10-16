@@ -30,6 +30,36 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser. Stop the se
 
 To let friends play from Macs on the same Wi-Fi network, keep the server running and share your Mac's local IP address with them. On macOS, find it in **System Settings → Wi-Fi → Details**, then have them open `http://YOUR-MAC-IP:8000` in a browser. If macOS asks whether Python can accept incoming connections, allow it. This shares the game only on your local network; friends on other networks need a deployed version.
 
+## Real apps: Android, iPhone, Windows, Mac
+
+The same game is packaged as normal installable apps, built automatically by GitHub (nothing to install on your computer):
+
+1. Push the `add-pwa-support` branch to GitHub; the app build starts automatically. Once the workflow is on the default branch, you can also start it from **Actions** → **Build apps** → **Run workflow**. A build takes roughly 10–25 minutes.
+2. When a job finishes, download its file from the **Artifacts** section at the bottom of the run page. (To get a proper **Releases** page with all the files, push a version tag instead: `git tag v1.0.0 && git push origin v1.0.0`.)
+
+| Platform | File | How to install |
+| --- | --- | --- |
+| Android | `LastLight-android.apk` | Copy it to the phone and open it. Allow **Install unknown apps** when asked. Builds use a temporary debug key, so a later build may not install over an earlier one; uninstalling the old app can erase its saved progress. |
+| Windows | `LastLight-Setup-<version>.exe` | Run it. If Windows says "protected your PC", click **More info → Run anyway** (the app isn't code-signed). |
+| Mac | `LastLight-<version>-mac-arm64.dmg` (M1/M2/M3/M4) or `-mac-x64.dmg` (Intel) | Open the `.dmg` and drag Last Light to Applications. The first time, right-click the app → **Open**. If macOS says it is "damaged", run `xattr -cr "/Applications/Last Light.app"` in Terminal. |
+| iPhone | `LastLight-iOS-unsigned.ipa` | iOS only runs signed apps, so this file must be signed on install: use [Sideloadly](https://sideloadly.io) or [AltStore](https://altstore.io) with a free Apple ID (re-sign every 7 days). For TestFlight or the App Store you need a paid Apple Developer account and signing set up in the workflow. |
+
+The apps keep their own saved gems, unlocks, and best wave on each device; progress is not shared between devices.
+
+**Changing the app:** edit the game in `static/`, bump `version` in `package.json` and `CACHE_VERSION` in `static/sw.js`, then run the workflow again. The app name, icon art, and ID (`com.kaizen.lastlight`) live in `package.json`, `capacitor.config.json`, `assets/`, and `build/`. Android builds here are for sharing directly; publishing to Google Play needs your own private signing key.
+
+## Install the web version (PWA)
+
+The online version is also an installable web app. Once it's open, it can be added to your device and then runs full-screen from its own icon, even offline:
+
+- **Android (Chrome):** menu **⋮ → Install app** (or **Add to Home screen**).
+- **iPhone / iPad (Safari):** **Share → Add to Home Screen**.
+- **Windows / Mac / Linux (Chrome or Edge):** click the install icon at the right of the address bar, or menu **→ Install Last Light**.
+
+Installing needs the game to be served over `https://` (the GitHub Pages link works) or `http://localhost`. Opening `static/index.html` directly still works for playing, but it can't be installed.
+
+When you change any game file, bump `CACHE_VERSION` in `static/sw.js` so installed copies pick up the update.
+
 ## Play
 
 Choose a tower from the arsenal, then click an open patch of grass to deploy it. Towers can be placed between waves or during an active wave, so you can reinforce your defenses as the battle unfolds. Towers automatically attack enemies within range. Select a placed tower to upgrade it, choose an available attack path, or sell it. Start each wave when you're ready. Turn **AUTO: ON** beside the wave button to automatically begin the next wave shortly after each wave is cleared; turn it off during the intermission to stop the next wave. Enemies are tougher and faster, and later Void and Frost waves introduce shields and hidden enemies.
