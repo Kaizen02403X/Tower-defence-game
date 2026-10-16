@@ -265,3 +265,9 @@ kbd { display: inline-grid; min-width: 17px; height: 17px; margin-left: 3px; pla
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* App-like feel on touch screens and inside the installed apps */
+html { overscroll-behavior: none; }
+body, button { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+button { touch-action: manipulation; }
+.hud, .battlefield, .sidebar { -webkit-user-select: none; user-select: none; }

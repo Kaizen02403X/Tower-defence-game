@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#10151e">
     <meta name="description" content="Last Light is a tower defense campaign with five modes, five maps, ten towers, and escalating boss battles.">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Last Light">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Last Light — Tower Defense</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <main class="game-shell">
       <header class="topbar">
-        <a class="brand" href="/" aria-label="Last Light home">
+        <a class="brand" href="./" aria-label="Last Light home">
           <span class="brand-mark">✦</span>
           <span class="brand-name">LAST <span>LIGHT</span></span>
         </a>
@@ -93,5 +100,16 @@
       <footer class="page-footer"><span>PROTECT THE GATE. HOLD THE NIGHT.</span><span>LAST LIGHT <span class="footer-divider">·</span> TOWER DEFENSE</span></footer>
     </main>
     <script src="game.js" defer></script>
+    <script>
+      // Register the service worker so the web version installs as an app and works offline.
+      // Skipped on file:// (double-clicking index.html, the desktop app) and inside the
+      // Android/iPhone apps, which already bundle every game file.
+      const inNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      if ("serviceWorker" in navigator && location.protocol !== "file:" && !inNativeApp) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("sw.js").catch((error) => console.warn("Offline mode unavailable:", error));
+        });
+      }
+    </script>
   </body>
 </html>
