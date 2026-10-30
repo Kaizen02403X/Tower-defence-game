@@ -262,8 +262,6 @@ class LastLight:
             "slow": stats.get("slow", 0), "splash": stats.get("splash", 0),
             "trail": [(tower["x"], tower["y"] - 7)],
         }
-        self.add_effect("muzzle", tower["x"] + math.cos(tower["aim"]) * 20, tower["y"] + math.sin(tower["aim"]) * 20, stats["color"], 17, .12)
-        self.burst(tower["x"] + math.cos(tower["aim"]) * 20, tower["y"] + math.sin(tower["aim"]) * 20, stats["color"], 3, 65)
         if tower["type"] == "tesla":
             struck = [target]
             self.damage_enemy(target, shot["damage"])
@@ -279,25 +277,17 @@ class LastLight:
                 next_enemy = min(candidates, key=lambda e: math.hypot(e["x"] - origin["x"], e["y"] - origin["y"]))
                 struck.append(next_enemy)
                 self.damage_enemy(next_enemy, shot["damage"] * .72)
-            points = [(tower["x"], tower["y"] - 8)] + [(e["x"], e["y"]) for e in struck]
-            self.effects.append({"type": "lightning", "points": points, "color": stats["color"], "expires": self.game_time + .24})
-            for enemy in struck:
-                self.burst(enemy["x"], enemy["y"], stats["color"], 5, 100)
             return
         self.projectiles.append(shot)
 
     def impact(self, shot):
         target = shot["target"]
         if shot["splash"]:
-            self.add_effect("blast", shot["x"], shot["y"], shot["color"], shot["splash"], .38)
-            self.burst(shot["x"], shot["y"], shot["color"], 17, 155)
             for enemy in self.enemies:
                 if not enemy.get("dead") and math.hypot(enemy["x"] - shot["x"], enemy["y"] - shot["y"]) <= shot["splash"]:
                     self.damage_enemy(enemy, shot["damage"] * (1 if enemy is target else .68), shot["slow"])
         else:
             self.damage_enemy(target, shot["damage"], shot["slow"])
-            self.add_effect("impact", shot["x"], shot["y"], shot["color"], 18, .2)
-            self.burst(shot["x"], shot["y"], shot["color"], 5, 110)
 
     def update(self, dt):
         if self.game_state not in ("build", "wave"):
@@ -703,13 +693,6 @@ class LastLight:
             self.draw_tower(tower, tower is self.selected_tower)
         for enemy in self.enemies:
             self.draw_enemy(enemy)
-        for shot in self.projectiles:
-            tint = color(shot["color"])
-            for index, point in enumerate(shot["trail"]):
-                ratio = (index + 1) / len(shot["trail"])
-                pygame.draw.circle(self.screen, tint, (round(point[0]), round(point[1])), max(1, round(3 * ratio)))
-            self.glow(shot["x"], shot["y"], shot["color"], 14, .95)
-            pygame.draw.circle(self.screen, color("#fff4d6"), (round(shot["x"]), round(shot["y"])), 3)
         for effect in self.effects:
             duration = .38 if effect["type"] == "blast" else .6 if effect["type"] == "pulse" else .2 if effect["type"] == "impact" else .12 if effect["type"] == "muzzle" else .65
             progress = 1 - (effect["expires"] - self.game_time) / duration

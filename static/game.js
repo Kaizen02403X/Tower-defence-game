@@ -711,8 +711,6 @@
     const damage = stats.damage * (1 + tower.level * .15);
     const angle = Math.atan2(target.y - tower.y, target.x - tower.x);
     tower.aim = angle;
-    addEffect("muzzle", tower.x + Math.cos(angle) * 21, tower.y + Math.sin(angle) * 21, stats.color, 17, .12);
-    addBurst(tower.x + Math.cos(angle) * 21, tower.y + Math.sin(angle) * 21, stats.color, 3, 60);
     if (tower.type === "summoner") {
       const skeletonLimit = 3 + Math.floor(tower.level / 5);
       if (summonedSkeletons.filter((skeleton) => skeleton.towerId === tower.id && !skeleton.dead).length >= skeletonLimit) return;
@@ -733,8 +731,6 @@
       if (tower.type === "overcharge" && tower.branch === "static" && tier >= 2) {
         const struck = activeEnemies.filter((enemy) => !enemy.dead && Math.hypot(enemy.x - tower.x, enemy.y - tower.y) <= stats.range + tower.level * 4);
         struck.forEach((enemy) => applyDamage(enemy, damage * .72, 0, "tesla"));
-        addEffect("static", tower.x, tower.y, stats.color, stats.range + tower.level * 4, .42);
-        effects.push({ type: "lightning", points: [[tower.x, tower.y], ...struck.map((enemy) => [enemy.x, enemy.y])], color: stats.color, life: .3, maxLife: .3 });
         return;
       }
       const struck = [target];
@@ -751,13 +747,6 @@
         struck.push(next);
         applyDamage(next, damage * .72, 0, tower.type);
       }
-      effects.push({
-        type: tower.type === "laser" ? "beam" : "lightning",
-        points: [[tower.x, tower.y - 8], ...struck.map((enemy) => [enemy.x, enemy.y])],
-        color: tower.type === "laser" && tier >= 3 ? "#d79cff" : tower.type === "overcharge" && tier >= 2 ? "#ffb85d" : tower.type === "tesla" && tier >= 6 ? "#ffcc68" : stats.color,
-        life: tower.type === "laser" ? .38 : .24, maxLife: tower.type === "laser" ? .38 : .24,
-      });
-      struck.forEach((enemy) => addBurst(enemy.x, enemy.y, stats.color, 5, 100));
       return;
     }
     if (tower.type === "void" && tier >= 3) {
@@ -765,11 +754,6 @@
       const radius = 55 + tier * 5;
       for (const enemy of activeEnemies) {
         if (!enemy.dead && Math.hypot(enemy.x - target.x, enemy.y - target.y) <= radius) applyDamage(enemy, damage * .85, 0, tower.type);
-      }
-      addEffect("portal", target.x, target.y, stats.color, radius, .65);
-      for (let strike = 0; strike < 5; strike++) {
-        const nearby = activeEnemies.filter((enemy) => !enemy.dead && Math.hypot(enemy.x - target.x, enemy.y - target.y) <= radius);
-        if (nearby[strike]) effects.push({ type: "lightning", points: [[target.x, target.y - 85], [nearby[strike].x, nearby[strike].y]], color: "#d69cff", life: .3, maxLife: .3 });
       }
       return;
     }
@@ -845,12 +829,8 @@
         slow: shot.field.slow || 0, armorBreak: shot.field.armorBreak || 0, towerType: shot.towerType,
         progress: shot.target.progress, pull: shot.towerType === "void",
       });
-      addEffect(shot.towerType === "void" ? "portal" : "blast", shot.x, shot.y, shot.field.color, shot.splash || 32, .55);
-      addBurst(shot.x, shot.y, shot.field.color, shot.towerType === "alchemist" ? 16 : 12, 100);
     }
     if (shot.splash) {
-      addEffect("blast", shot.x, shot.y, shot.color, shot.splash, .38);
-      addBurst(shot.x, shot.y, shot.color, 18, 145);
       for (const enemy of activeEnemies) {
         if (!enemy.dead && Math.hypot(enemy.x - shot.x, enemy.y - shot.y) <= shot.splash) {
           applyDamage(enemy, shot.damage * (enemy === shot.target ? 1 : .68), shot.slow, shot.towerType);
@@ -858,8 +838,6 @@
       }
     } else {
       applyDamage(shot.target, shot.damage, shot.slow, shot.towerType);
-      addEffect("impact", shot.x, shot.y, shot.color, 18, .2);
-      addBurst(shot.x, shot.y, shot.color, 5, 105);
     }
   }
 
@@ -950,8 +928,6 @@
         if (skeleton.meleeTimer >= skeleton.attackCooldown) {
           skeleton.meleeTimer = 0;
           applyDamage(target, skeleton.damage, 0, "summoner");
-          addEffect("impact", target.x, target.y, "#cbb3ff", 20, .2);
-          addBurst(target.x, target.y, "#dcd1f1", 5, 72);
         }
       } else if (target) {
         skeleton.direction = target.progress > skeleton.progress ? 1 : -1;
@@ -2172,34 +2148,10 @@
     ctx.globalAlpha = 1;
   }
 
-  function drawDamageFields() {
-    for (const field of damageFields) {
-      const alpha = Math.min(.28, .12 + field.duration * .025);
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      const haze = ctx.createRadialGradient(field.x, field.y, 1, field.x, field.y, field.radius);
-      haze.addColorStop(0, field.color);
-      haze.addColorStop(.62, `${field.color}78`);
-      haze.addColorStop(1, "transparent");
-      ctx.fillStyle = haze;
-      ctx.beginPath();
-      ctx.arc(field.x, field.y, field.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = `${field.color}bb`;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash(field.towerType === "void" ? [3, 5] : []);
-      ctx.beginPath();
-      ctx.arc(field.x, field.y, field.radius * (.9 + Math.sin(gameTime * 3) * .035), 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
-
   function render(now) {
     ctx.drawImage(world, 0, 0);
     drawFireflies(now);
     drawGate();
-    drawDamageFields();
     if (selectedTower) {
       const range = towers[selectedTower.type].range + selectedTower.level * 4;
       ctx.fillStyle = `${towers[selectedTower.type].color}12`;
@@ -2217,44 +2169,6 @@
     placedTowers.forEach((tower) => drawTower(tower, tower === selectedTower));
     activeEnemies.forEach((enemy) => drawEnemy(enemy, now));
 
-    for (const shot of projectiles) {
-      ctx.save();
-      ctx.lineCap = "round";
-      if (shot.trail.length > 1) {
-        ctx.beginPath();
-        shot.trail.forEach(([x, y], index) => {
-          if (!index) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        });
-        ctx.strokeStyle = `${shot.color}80`;
-        ctx.lineWidth = shot.type === "shell" ? 4 : 2;
-        ctx.stroke();
-      }
-      const size = shot.type === "shell" || shot.type === "fireball" || shot.type === "blackHole" ? 5.5 : 3;
-      glow(shot.x, shot.y, shot.color, size * (shot.type === "blackHole" ? 4 : 3), .95);
-      ctx.fillStyle = shot.type === "energyBolt" ? "#ffffff" : shot.color;
-      if (shot.type === "iceShard") {
-        ctx.beginPath();
-        ctx.moveTo(shot.x, shot.y - 7); ctx.lineTo(shot.x + 4, shot.y);
-        ctx.lineTo(shot.x, shot.y + 7); ctx.lineTo(shot.x - 4, shot.y);
-        ctx.closePath(); ctx.fill();
-      } else if (shot.type === "flask") {
-        ctx.fillRect(shot.x - 3, shot.y - 4, 6, 8);
-        ctx.fillStyle = "#dfffe0"; ctx.fillRect(shot.x - 2, shot.y - 6, 4, 2);
-      } else if (shot.type === "slime") {
-        ctx.beginPath(); ctx.ellipse(shot.x, shot.y, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
-      } else {
-        ctx.beginPath();
-        ctx.arc(shot.x, shot.y, size, 0, Math.PI * 2);
-        ctx.fill();
-        if (shot.type === "blackHole") {
-          ctx.fillStyle = "#0d0717";
-          ctx.beginPath();
-          ctx.arc(shot.x, shot.y, 3, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      ctx.restore();
-    }
     for (const skeleton of summonedSkeletons) {
       ctx.save();
       ctx.globalAlpha = Math.min(1, skeleton.life / .8);
