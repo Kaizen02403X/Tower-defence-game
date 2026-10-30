@@ -13,9 +13,9 @@
     citadel: { name: "The Shattered Citadel", stars: 5, theme: "citadel", terrain: "Ruined fortress approaches", tint: "#55433b", colors: ["#5a5046", "#443e3b", "#292d32"], road: ["#202528", "#393b3b", "#62584c", "#88775e", "#b09a76"], route: [[-24, 300], [155, 300], [155, 95], [365, 95], [365, 305], [575, 305], [575, 500], [790, 500], [790, 455], [984, 455]] },
   };
   const modes = {
-    easy: { name: "Easy", waves: 30, scale: .72, reward: 25, description: "A gentler defense with fewer, slower enemies." },
+    easy: { name: "Easy", waves: 30, scale: .72, reward: 25, description: "A gentler route with fewer, slower enemies." },
     intermediate: { name: "Intermediate", waves: 35, scale: 1, reward: 35, description: "A balanced campaign with steadily growing threats." },
-    molten: { name: "Molten", waves: 35, scale: 1.28, reward: 42, description: "Faster assaults and tougher enemies test your defenses." },
+    molten: { name: "Molten", waves: 35, scale: 1.28, reward: 42, description: "Faster assaults and tougher enemies race for the gate." },
     void: { name: "Void", waves: 40, scale: 1.58, reward: 50, description: "Armored, hidden enemies and punishing boss waves." },
     frost: { name: "Frost", waves: 50, scale: 1.9, reward: 65, description: "The harshest campaign: relentless, swift, resilient enemies." },
   };
@@ -79,10 +79,8 @@
     gold: document.querySelector("#gold"),
     wave: document.querySelector("#wave"),
     best: document.querySelector("#best-wave"),
-    count: document.querySelector("#build-count"),
     nextWave: document.querySelector("#next-wave"),
     message: document.querySelector("#message"),
-    towerList: document.querySelector("#tower-list"),
     inspection: document.querySelector("#inspection"),
     bossName: document.querySelector("#next-boss-name"),
     bossCategory: document.querySelector("#next-boss-category"),
@@ -97,9 +95,7 @@
     pauseButton: document.querySelector("#pause-button"),
     soundButton: document.querySelector("#sound-button"),
     menuButton: document.querySelector("#menu-button"),
-    shopButton: document.querySelector("#shop-button"),
     gemCount: document.querySelector("#gem-count"),
-    shopGems: document.querySelector("#shop-gems"),
     campaignLabel: document.querySelector("#campaign-label"),
     bossCount: document.querySelector("#boss-count"),
     overlay: document.querySelector("#game-overlay"),
@@ -326,8 +322,6 @@
   let pausedFrom = "build";
   let shopReturnState = "menu";
   let returnToCampaign = false;
-  let selectedType = null;
-  let selectedTower = null;
   let gems = 0;
   let unlockedTowers = new Set();
   let campaignRewarded = false;
@@ -346,8 +340,7 @@
   let autoWave = false;
   let autoWaveTimer = 0;
   let nextEntityId = 1;
-  let mouse = { x: -100, y: -100 };
-  let message = "Choose a defender, then place it on the grass.";
+  let message = "Enemies are unopposed. Start a wave to send them along the road.";
   let lastFrame = performance.now();
   let uiDirty = true;
   let lastBossHud = 0;
@@ -568,7 +561,7 @@
     spawnQueue = Array.from({ length: count }, (_, index) => ({ index, boss: isBossWave && index === count - 2 }));
     spawnTimer = .25;
     const boss = isBossWave ? bossForWave(wave) : null;
-    setMessage(boss ? `${boss.name} approaches. ${boss.trait} — adjust your defenses!` : "Enemies incoming. Watch for faster, shielded, and hidden threats.");
+    setMessage(boss ? `${boss.name} approaches. ${boss.trait} — watch the gate!` : "Enemies are on the road. Watch for faster, shielded, and hidden threats.");
     uiDirty = true;
   }
 
@@ -844,8 +837,6 @@
   function endGame() {
     lives = 0;
     state = "gameover";
-    selectedType = null;
-    selectedTower = null;
     updateBest();
     setMessage(`The gate has fallen. You reached wave ${wave}.`);
     uiDirty = true;
@@ -1046,89 +1037,6 @@
     effects = effects.filter((effect) => effect.life > 0);
   }
 
-  function validPlacement(x, y, type) {
-    if (x < 28 || x > 932 || y < 28 || y > 572 || distanceToRoute(x, y) < 49) return false;
-    if (placedTowers.some((tower) => Math.hypot(tower.x - x, tower.y - y) < 47)) return false;
-    const stats = towers[type];
-    return gold >= stats.cost && (state === "build" || state === "wave") && placedTowers.filter((tower) => tower.type === type).length < stats.limit;
-  }
-
-  function placeTower(x, y) {
-    if (!selectedType) return;
-    const stats = towers[selectedType];
-    if (placedTowers.filter((tower) => tower.type === selectedType).length >= stats.limit) {
-      setMessage(`${stats.name} limit reached · maximum ${stats.limit}.`);
-      return;
-    }
-    if (validPlacement(x, y, selectedType)) {
-      const tower = {
-        id: nextEntityId++, type: selectedType, x, y, level: 0, cooldown: 0, aim: -Math.PI / 2,
-        branch: selectedType === "elementalist" ? "fire" : selectedType === "overcharge" ? "plasma" : "toxin",
-      };
-      placedTowers.push(tower);
-      gold -= stats.cost;
-      selectedTower = tower;
-      selectedType = null;
-      setMessage(`${stats.name} deployed. Add defenders or begin the next wave.`);
-    } else if (gold < stats.cost) {
-      setMessage(`Not enough gold for ${stats.name} · need ◈ ${stats.cost}`);
-    } else {
-      setMessage("Find an open patch of grass beside the road.");
-    }
-    uiDirty = true;
-  }
-
-  function selectTower(type) {
-    if (state !== "build" && state !== "wave") return;
-    if (towers[type].premium && !unlockedTowers.has(type)) {
-      setMessage(`${towers[type].name} is locked. Unlock it in the tower shop with gems.`);
-      return;
-    }
-    if (placedTowers.filter((tower) => tower.type === type).length >= towers[type].limit) {
-      setMessage(`${towers[type].name} limit reached · maximum ${towers[type].limit}.`);
-      return;
-    }
-    if (gold < towers[type].cost && selectedType !== type) {
-      setMessage(`Not enough gold for ${towers[type].name} · need ◈ ${towers[type].cost}`);
-      return;
-    }
-    selectedType = selectedType === type ? null : type;
-    selectedTower = null;
-    uiDirty = true;
-  }
-
-  function upgradeTower() {
-    if (!selectedTower || selectedTower.level >= 9) return;
-    const stats = towers[selectedTower.type];
-    const cost = Math.round(stats.cost * (.55 + (selectedTower.level + 1) * .38));
-    if (gold < cost) return;
-    gold -= cost;
-    selectedTower.level++;
-    selectedTower.cooldown = Math.min(selectedTower.cooldown, .15);
-    setMessage(`${stats.name} upgraded to level ${selectedTower.level + 1}${selectedTower.level === 1 ? " · new attack effect unlocked" : ""}.`);
-    uiDirty = true;
-  }
-
-  function chooseTowerBranch(branch) {
-    if (!selectedTower || !["elementalist", "alchemist", "overcharge"].includes(selectedTower.type)) return;
-    if (selectedTower.type === "elementalist" && !["fire", "ice"].includes(branch)) return;
-    if (selectedTower.type === "alchemist" && !["toxin", "acid"].includes(branch)) return;
-    if (selectedTower.type === "overcharge" && !["plasma", "static"].includes(branch)) return;
-    selectedTower.branch = branch;
-    setMessage(`${towers[selectedTower.type].name} path changed to ${branch === "fire" ? "Pyromancer" : branch === "ice" ? "Glacier" : branch === "acid" ? "Corrosive Acid" : "Toxic Gas"}.`);
-    uiDirty = true;
-  }
-
-  function sellTower() {
-    if (!selectedTower) return;
-    const stats = towers[selectedTower.type];
-    gold += Math.floor(stats.cost * (.72 + selectedTower.level * .25));
-    placedTowers = placedTowers.filter((tower) => tower !== selectedTower);
-    selectedTower = null;
-    setMessage(`${stats.name} sold. Gold returned to your treasury.`);
-    uiDirty = true;
-  }
-
   function pauseToggle() {
     if (state === "build" || state === "wave") {
       pausedFrom = state;
@@ -1174,14 +1082,13 @@
     gems -= stats.gemCost;
     unlockedTowers.add(type);
     saveAccountProgress();
-    setMessage(`${stats.name} unlocked! It is ready in your arsenal.`);
+    setMessage(`${stats.name} unlocked.`);
     uiDirty = true;
   }
 
   function openShop() {
     shopReturnState = state;
     state = "shop";
-    selectedType = null;
     uiDirty = true;
   }
 
@@ -1189,8 +1096,6 @@
     gold = 260;
     lives = 20;
     wave = 0;
-    selectedType = null;
-    selectedTower = null;
     placedTowers = [];
     activeEnemies = [];
     projectiles = [];
@@ -1207,7 +1112,7 @@
     returnToCampaign = false;
     nextEntityId = 1;
     state = "build";
-    setMessage("Choose a defender, then place it on the grass.");
+    setMessage("Enemies are unopposed. Start a wave to send them along the road.");
     uiDirty = true;
   }
 
@@ -1219,8 +1124,8 @@
     if (!visible) return;
     if (state === "menu") {
       ui.overlayContent.innerHTML = `
-        <p class="overlay-eyebrow">A DEFENSE GAME ABOUT HOLDING ON</p><h1>Last Light</h1>
-        <p class="overlay-copy">Choose your challenge, build a defense, and keep the gate alive.</p>
+        <p class="overlay-eyebrow">A RACE TO THE LAST GATE</p><h1>Last Light</h1>
+        <p class="overlay-copy">Choose a challenge and watch enemy waves travel the road toward the gate.</p>
         <div class="menu-actions">${returnToCampaign ? `<button class="primary-button" data-action="resume">RESUME CAMPAIGN</button>` : ""}
         <button class="primary-button" data-action="play">PLAY</button>
         <button class="secondary-button" data-action="shop">TOWER SHOP · ✦ ${gems}</button>
@@ -1268,13 +1173,13 @@
     } else if (state === "about") {
       ui.overlayContent.innerHTML = `
         <p class="overlay-eyebrow">ABOUT LAST LIGHT</p><h1>Hold the line.</h1>
-        <p class="about-copy">Last Light is a strategy tower-defense game about protecting the last gate from an ever-changing night. Choose one of five enemy modes, then pick one of five maps with its own separate terrain challenge. Build and upgrade ten distinct towers, survive escalating waves and boss encounters, and earn gems by completing a campaign to unlock five specialist towers.</p>
-        <p class="about-copy">Battle gold is temporary and only buys defenses during a campaign. Gems are separate, saved between campaigns on this device, and used only in the tower shop.</p>
+        <p class="about-copy">Last Light sends escalating enemy waves along winding roads toward the last gate. Choose one of five enemy modes, then pick one of five maps with its own separate terrain challenge. Watch out for faster, hidden, and shielded enemies and survive boss encounters.</p>
+        <p class="about-copy">Battle gold is earned as waves are cleared. Gems are separate, saved between campaigns on this device, and can be spent in the tower shop.</p>
         <div class="overlay-actions"><button class="secondary-button" data-action="home">MAIN MENU</button></div>`;
     } else if (state === "paused") {
       ui.overlayContent.innerHTML = `
         <p class="overlay-eyebrow">TAKE A BREATH</p><h1>Battle paused</h1>
-        <p class="overlay-copy">Your defenders are waiting. Pick up where you left off.</p>
+        <p class="overlay-copy">The waves are paused. Resume to watch the enemies continue toward the gate.</p>
         <div class="overlay-actions"><button class="primary-button" data-action="resume">RESUME DEFENSE</button><button class="secondary-button" data-action="home">MAIN MENU</button></div>`;
     } else if (state === "gameover") {
       ui.overlayContent.innerHTML = `
@@ -1287,28 +1192,6 @@
         <p class="overlay-copy">${modes[currentMode].name} conquered on ${maps[currentMapKey].name}. You earned ✦ ${modes[currentMode].reward} gems for the tower shop.</p>
         <div class="overlay-actions"><button class="primary-button" data-action="retry">PLAY AGAIN</button><button class="secondary-button" data-action="home">MAIN MENU</button></div>`;
     }
-  }
-
-  function renderTowerList() {
-    ui.towerList.innerHTML = Object.entries(towers).map(([key, stats], index) => {
-      const count = placedTowers.filter((tower) => tower.type === key).length;
-      const locked = stats.premium && !unlockedTowers.has(key);
-      return `<button class="tower-card${selectedType === key ? " is-selected" : ""}" type="button" data-tower="${key}" aria-pressed="${selectedType === key}" ${!locked && (gold < stats.cost || count >= stats.limit) ? "disabled" : ""}>
-        <span class="tower-icon" style="color:${stats.color}">${stats.icon}</span>
-        <span class="tower-copy"><strong>${stats.name}</strong><small>${locked ? `LOCKED · ✦ ${stats.gemCost}` : `${stats.role} · ${count}/${stats.limit}`}</small></span>
-        <span class="tower-cost">${locked ? "SHOP" : `◈ ${stats.cost}`}</span>
-      </button>`;
-    }).join("");
-    ui.towerList.querySelectorAll("[data-tower]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const stats = towers[button.dataset.tower];
-        if (stats.premium && !unlockedTowers.has(button.dataset.tower)) {
-          setMessage(`Unlock ${stats.name} in the tower shop for ✦ ${stats.gemCost}.`);
-          return;
-        }
-        selectTower(button.dataset.tower);
-      });
-    });
   }
 
   function renderBossRoster() {
@@ -1351,44 +1234,7 @@
   }
 
   function renderInspection() {
-    if (!selectedTower) {
-      ui.inspection.innerHTML = `<h2>Hold the line</h2><p>${selectedType ? `Click the grass to deploy your ${towers[selectedType].name}. Press Esc to cancel.` : "Place defenders beside the road. They'll target the closest threat automatically."}</p><div class="intel-tags"><span>✦ AUTO-TARGET</span><span>⌁ UPGRADE</span></div>`;
-      return;
-    }
-    const stats = towers[selectedTower.type];
-    const damage = Math.round(stats.damage * (1 + .15 * selectedTower.level));
-    const range = stats.range + selectedTower.level * 4;
-    const cost = Math.round(stats.cost * (.55 + (selectedTower.level + 1) * .38));
-    const refund = Math.floor(stats.cost * (.72 + selectedTower.level * .25));
-    const summonStatus = selectedTower.type === "summoner"
-      ? `<div class="tower-details"><span>💀 ${summonedSkeletons.filter((skeleton) => skeleton.towerId === selectedTower.id).length}/${3 + Math.floor(selectedTower.level / 5)} SKELETONS</span><span>♥ ${summonedSkeletons.filter((skeleton) => skeleton.towerId === selectedTower.id).reduce((total, skeleton) => total + skeleton.hp, 0)} TOTAL HP</span></div>`
-      : "";
-    const pathChoices = selectedTower.level >= 1 && selectedTower.type === "elementalist"
-      ? `<div class="path-choices"><button type="button" data-path="fire" class="${selectedTower.branch === "fire" ? "is-selected" : ""}">PYROMANCER</button><button type="button" data-path="ice" class="${selectedTower.branch === "ice" ? "is-selected" : ""}">GLACIER</button></div>`
-      : selectedTower.level >= 1 && selectedTower.type === "alchemist"
-        ? `<div class="path-choices"><button type="button" data-path="toxin" class="${selectedTower.branch === "toxin" ? "is-selected" : ""}">TOXIC GAS</button><button type="button" data-path="acid" class="${selectedTower.branch === "acid" ? "is-selected" : ""}">CORROSIVE ACID</button></div>`
-        : selectedTower.level >= 1 && selectedTower.type === "overcharge"
-          ? `<div class="path-choices"><button type="button" data-path="plasma" class="${selectedTower.branch === "plasma" ? "is-selected" : ""}">PLASMA CHAINS</button><button type="button" data-path="static" class="${selectedTower.branch === "static" ? "is-selected" : ""}">STATIC FIELD</button></div>`
-        : "";
-    const attackStyle = selectedTower.type === "elementalist"
-      ? selectedTower.level === 0 ? "Standard Arc" : selectedTower.branch === "ice" ? "Glacier · slowing ice field" : "Pyromancer · lingering magma"
-      : selectedTower.type === "laser" ? selectedTower.level === 0 ? "Pulse laser" : selectedTower.level < 2 ? "Beam Lock" : "Orbital Prism · refracted beams"
-        : selectedTower.type === "alchemist" ? selectedTower.level === 0 ? "Mortar bomb" : selectedTower.branch === "acid" ? "Corrosive acid puddle" : "Toxic gas cloud"
-          : selectedTower.type === "void" ? selectedTower.level < 1 ? "Graviton spark" : selectedTower.level < 2 ? "Singularity burst" : "Event Horizon · portal strikes"
-            : selectedTower.type === "overcharge" ? selectedTower.level < 1 ? "Spark Coil" : selectedTower.branch === "static" ? "Static Field · area pulses" : "Overcharged plasma · 5 chains"
-              : `Level ${selectedTower.level + 1} attack`;
-    ui.inspection.innerHTML = `
-      <h2 style="color:${stats.color}">${stats.name} <span style="color:#95a09e">· LV ${selectedTower.level + 1}</span></h2>
-      <p>${selectedTower.type === "summoner" ? "Raises skeleton defenders at the gate. Enemies stop to attack them; skeletons fight back until one side falls." : `Deals ${damage} damage · ${range} range · ${attackStyle}.`}</p>
-      <div class="tower-details"><span>✦ ${damage} DMG</span><span>◎ ${range} RANGE</span></div>
-      ${summonStatus}
-      ${pathChoices}
-      <div class="inspect-actions">${selectedTower.level < 9 ? `<button type="button" data-action="upgrade" ${gold < cost ? "disabled" : ""}>✦ UPGRADE · ◈ ${cost} · LV ${selectedTower.level + 2}</button>` : `<span class="max-level">MAX LEVEL · 10</span>`}<button class="sell-button" type="button" data-action="sell">SELL · ◈ ${refund}</button></div>`;
-    const upgrade = ui.inspection.querySelector('[data-action="upgrade"]');
-    const sell = ui.inspection.querySelector('[data-action="sell"]');
-    if (upgrade) upgrade.addEventListener("click", upgradeTower);
-    sell.addEventListener("click", sellTower);
-    ui.inspection.querySelectorAll("[data-path]").forEach((button) => button.addEventListener("click", () => chooseTowerBranch(button.dataset.path)));
+    ui.inspection.innerHTML = "<h2>Unopposed passage</h2><p>No towers are deployed. Enemies will follow the road straight to the gate.</p>";
   }
 
   function updateUI() {
@@ -1397,8 +1243,6 @@
     ui.wave.textContent = wave === 0 ? "PREPARE" : String(wave);
     ui.best.textContent = bestWave || "—";
     ui.gemCount.textContent = gems;
-    ui.shopGems.textContent = gems;
-    ui.count.textContent = `${placedTowers.length} BUILT`;
     ui.nextWave.textContent = wave >= modes[currentMode].waves ? "—" : wave + 1;
     ui.message.textContent = message;
     ui.campaignLabel.textContent = `${modes[currentMode].name} · ${maps[currentMapKey].name} · ${wave}/${modes[currentMode].waves}`;
@@ -1416,7 +1260,6 @@
     ui.soundButton.textContent = soundEnabled ? "♫" : "♪̸";
     ui.soundButton.setAttribute("aria-label", soundEnabled ? "Mute game sounds" : "Enable game sounds");
     ui.soundButton.title = soundEnabled ? "Mute game sounds" : "Enable game sounds";
-    renderTowerList();
     renderInspection();
     renderBossRoster();
     updateBossIntel();
@@ -2152,21 +1995,6 @@
     ctx.drawImage(world, 0, 0);
     drawFireflies(now);
     drawGate();
-    if (selectedTower) {
-      const range = towers[selectedTower.type].range + selectedTower.level * 4;
-      ctx.fillStyle = `${towers[selectedTower.type].color}12`;
-      ctx.beginPath();
-      ctx.arc(selectedTower.x, selectedTower.y, range, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(196,238,208,.32)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([5, 8]);
-      ctx.beginPath();
-      ctx.arc(selectedTower.x, selectedTower.y, range, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    placedTowers.forEach((tower) => drawTower(tower, tower === selectedTower));
     activeEnemies.forEach((enemy) => drawEnemy(enemy, now));
 
     for (const skeleton of summonedSkeletons) {
@@ -2176,26 +2004,6 @@
       ctx.restore();
     }
     drawEffects();
-    if (selectedType && mouse.x >= 0 && mouse.x <= W && mouse.y >= 0 && mouse.y <= H) {
-      const valid = validPlacement(mouse.x, mouse.y, selectedType);
-      const tint = valid ? "#9be8b5" : "#f49b8c";
-      ctx.fillStyle = `${tint}12`;
-      ctx.beginPath();
-      ctx.arc(mouse.x, mouse.y, towers[selectedType].range, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.setLineDash([5, 8]);
-      ctx.strokeStyle = `${tint}99`;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(mouse.x, mouse.y, towers[selectedType].range, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      drawTower({ id: 0, type: selectedType, x: mouse.x, y: mouse.y, level: 0, aim: -Math.PI / 2 });
-      ctx.fillStyle = tint;
-      ctx.beginPath();
-      ctx.arc(mouse.x, mouse.y, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
     const vignette = ctx.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, 700);
     vignette.addColorStop(0, "rgba(5,11,16,0)");
     vignette.addColorStop(1, "rgba(5,11,16,.22)");
@@ -2216,30 +2024,6 @@
     requestAnimationFrame(frame);
   }
 
-  function pointFromEvent(event) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (event.clientX - rect.left) * W / rect.width,
-      y: (event.clientY - rect.top) * H / rect.height,
-    };
-  }
-
-  canvas.addEventListener("pointermove", (event) => {
-    mouse = pointFromEvent(event);
-  });
-  canvas.addEventListener("pointerleave", () => {
-    mouse = { x: -100, y: -100 };
-  });
-  canvas.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || state !== "build" && state !== "wave") return;
-    const point = pointFromEvent(event);
-    if (selectedType) {
-      placeTower(point.x, point.y);
-      return;
-    }
-    selectedTower = [...placedTowers].reverse().find((tower) => Math.hypot(tower.x - point.x, tower.y - point.y) <= 23) || null;
-    uiDirty = true;
-  });
   ui.waveButton.addEventListener("click", startWave);
   ui.autoWaveButton.addEventListener("click", () => {
     autoWave = !autoWave;
@@ -2257,11 +2041,8 @@
       returnToCampaign = true;
     }
     state = "menu";
-    selectedType = null;
-    selectedTower = null;
     uiDirty = true;
   });
-  ui.shopButton.addEventListener("click", openShop);
   ui.soundButton.addEventListener("click", () => {
     soundEnabled = !soundEnabled;
     if (soundEnabled) initializeAudio();
@@ -2290,7 +2071,6 @@
       resetGame();
     } else if (button.dataset.action === "home") {
       state = "menu";
-      selectedType = null;
     } else if (button.dataset.action === "shop") {
       openShop();
     } else if (button.dataset.action === "shop-back") {
@@ -2319,10 +2099,7 @@
     uiDirty = true;
   });
   window.addEventListener("keydown", (event) => {
-    if (event.code === "Escape" && selectedType) {
-      selectedType = null;
-      uiDirty = true;
-    } else if (event.code === "Escape" && state === "map-select") {
+    if (event.code === "Escape" && state === "map-select") {
       state = "mode-select";
       uiDirty = true;
     } else if (event.code === "Escape" && state !== "menu") {
@@ -2337,10 +2114,6 @@
       startWave();
     } else if (event.key.toLowerCase() === "p") {
       pauseToggle();
-    } else if (/^[1-9]$/.test(event.key) && (state === "build" || state === "wave")) {
-      selectTower(Object.keys(towers)[Number(event.key) - 1]);
-    } else if (event.key === "0" && (state === "build" || state === "wave")) {
-      selectTower(Object.keys(towers)[9]);
     }
   });
   window.addEventListener("pointerdown", unlockAudio, { once: true, capture: true });

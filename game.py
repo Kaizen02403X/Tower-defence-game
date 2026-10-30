@@ -107,7 +107,7 @@ class LastLight:
         self.game_state = "intro"
         self.reset_state()
         self.game_state = "intro"
-        self.message = "Select a tower, then place it on the grass."
+        self.message = "Enemies are unopposed. Start a wave to send them along the road."
         self.overlay_button = pygame.Rect(0, 0, 0, 0)
         self.running = True
 
@@ -134,15 +134,12 @@ class LastLight:
 
     def reset_state(self):
         self.gold, self.lives, self.wave = 260, 20, 0
-        self.selected_type = None
-        self.selected_tower = None
         self.towers, self.enemies = [], []
         self.projectiles, self.effects, self.particles = [], [], []
         self.spawn_queue = []
         self.spawn_timer = 0
         self.wave_speed = 1
         self.game_time = 0
-        self.mouse = (-100, -100)
         self.next_id = 1
 
     def text(self, value, font="body", tint="#e6e9df"):
@@ -200,7 +197,7 @@ class LastLight:
             for i in range(count)
         ]
         self.spawn_timer = .3
-        self.message = "Boss wave! Brace for a legendary enemy." if self.wave % 5 == 0 else "Enemies incoming. Towers fire automatically."
+        self.message = "Boss wave! Watch for a legendary enemy." if self.wave % 5 == 0 else "Enemies are on the road. Watch them advance toward the gate."
 
     def create_enemy(self, index, boss=False):
         enemy_id = self.next_id
@@ -394,56 +391,8 @@ class LastLight:
 
     def game_over(self):
         self.game_state = "gameover"
-        self.selected_type = None
-        self.selected_tower = None
         self.update_best()
         self.message = f"The gate has fallen. You reached wave {self.wave}."
-
-    def tower_valid(self, x, y, tower_type):
-        x -= FIELD.x
-        y -= FIELD.y
-        if not (28 <= x <= 932 and 28 <= y <= 572) or distance_to_route(x, y) < 49:
-            return False
-        if any(math.hypot(t["x"] - (x + FIELD.x), t["y"] - (y + FIELD.y)) < 47 for t in self.towers):
-            return False
-        return self.gold >= TOWER_DATA[tower_type]["cost"] and self.game_state != "gameover"
-
-    def place_tower(self, x, y):
-        if not self.selected_type:
-            return
-        stats = TOWER_DATA[self.selected_type]
-        if self.tower_valid(x, y, self.selected_type):
-            tower = {
-                "id": self.next_id, "type": self.selected_type, "x": x, "y": y,
-                "level": 0, "cooldown": 0, "aim": -math.pi / 2,
-            }
-            self.next_id += 1
-            self.gold -= stats["cost"]
-            self.towers.append(tower)
-            self.selected_type = None
-            self.selected_tower = tower
-            self.message = f"{stats['name']} placed. Add more towers or start the next wave."
-        elif self.gold < stats["cost"]:
-            self.message = f"Not enough gold for {stats['name']} · need ◈ {stats['cost']}"
-        else:
-            self.message = "Find an open patch of grass beside the road."
-
-    def upgrade_tower(self):
-        tower = self.selected_tower
-        if not tower or tower["level"] >= 2:
-            return
-        cost = round(TOWER_DATA[tower["type"]]["cost"] * (.85 + tower["level"] * .5))
-        if self.gold >= cost:
-            self.gold -= cost
-            tower["level"] += 1
-            tower["cooldown"] = min(tower["cooldown"], .15)
-
-    def sell_tower(self):
-        tower = self.selected_tower
-        if tower and tower in self.towers:
-            self.gold += math.floor(TOWER_DATA[tower["type"]]["cost"] * (.72 + tower["level"] * .25))
-            self.towers.remove(tower)
-            self.selected_tower = None
 
     def draw_background(self):
         self.screen.fill(color("#10151e"))
@@ -682,15 +631,6 @@ class LastLight:
     def draw_game(self):
         self.draw_background()
         self.draw_world()
-        if self.selected_tower in self.towers:
-            tower = self.selected_tower
-            radius = TOWER_DATA[tower["type"]]["range"] + tower["level"] * 10
-            pulse = round(math.sin(self.game_time * 2.5) * 2)
-            self.draw_range(tower["x"], tower["y"], radius + pulse, TOWER_DATA[tower["type"]]["color"], .07)
-            pygame.draw.circle(self.screen, color("#6d9d83"), (round(tower["x"]), round(tower["y"])), radius + pulse, 1)
-            pygame.draw.circle(self.screen, color("#456b5b"), (round(tower["x"]), round(tower["y"])), radius + pulse - 2, 1)
-        for tower in self.towers:
-            self.draw_tower(tower, tower is self.selected_tower)
         for enemy in self.enemies:
             self.draw_enemy(enemy)
         for effect in self.effects:
@@ -720,16 +660,6 @@ class LastLight:
             radius = max(1, round(particle["size"] * alpha))
             self.glow(particle["x"], particle["y"], particle["color"], max(4, radius * 3), alpha * .8)
             pygame.draw.circle(self.screen, color(particle["color"]), (round(particle["x"]), round(particle["y"])), radius)
-        if self.selected_type:
-            mx, my = self.mouse
-            stats = TOWER_DATA[self.selected_type]
-            valid = self.tower_valid(mx, my, self.selected_type)
-            if FIELD.collidepoint(mx, my):
-                self.draw_range(mx, my, stats["range"], "#9be8b5" if valid else "#f49b8c", .11)
-                pygame.draw.circle(self.screen, color("#9be8b5" if valid else "#f49b8c"), (mx, my), stats["range"], 1)
-                ghost = {"type": self.selected_type, "x": mx, "y": my, "level": 0, "id": 0}
-                self.draw_tower(ghost)
-                pygame.draw.circle(self.screen, color("#b7f6c7" if valid else "#f49b8c"), (mx, my), 4)
         self.draw_sidebar()
         if self.game_state in ("intro", "paused", "gameover"):
             self.draw_overlay()
@@ -744,43 +674,11 @@ class LastLight:
     def draw_sidebar(self):
         panel = pygame.Rect(1000, 112, 260, 600)
         pygame.draw.rect(self.screen, color("#171f27"), panel, border_radius=12)
-        self.draw_text("YOUR ARSENAL", 1018, 130, "tiny", "#a9c8b5")
-        self.draw_text("Build a tower", 1018, 151, "medium")
-        self.draw_text(f"{len(self.towers)} BUILT", 1175, 158, "tiny", "#b3a77f")
-        self.tower_rects = {}
-        for index, (key, stats) in enumerate(TOWER_DATA.items()):
-            rect = pygame.Rect(1016, 190 + index * 58, 228, 48)
-            self.tower_rects[key] = rect
-            selected = self.selected_type == key
-            pygame.draw.rect(self.screen, color("#34453f" if selected else "#222d36"), rect, border_radius=7)
-            pygame.draw.rect(self.screen, color("#6c8a76" if selected else "#34414a"), rect, 1, border_radius=7)
-            self.draw_text(stats["name"], 1027, rect.y + 6, "small", stats["color"])
-            self.draw_text(stats["role"], 1027, rect.y + 27, "tiny", "#a3aaa5")
-            self.draw_text(f"◈ {stats['cost']}", 1183, rect.y + 17, "small", "#e7c77f")
-
         self.draw_text("FIELD INTEL", 1018, 435, "tiny", "#a9c8b5")
-        tower = self.selected_tower
-        if tower in self.towers:
-            stats = TOWER_DATA[tower["type"]]
-            self.draw_text(f"{stats['name']} · LV {tower['level'] + 1}", 1018, 459, "medium", stats["color"])
-            self.draw_text(f"{round(stats['damage'] * (1 + .42 * tower['level']))} damage · {stats['range'] + tower['level'] * 10} range", 1018, 490, "tiny")
-            self.action_rects = {}
-            if tower["level"] < 2:
-                cost = round(stats["cost"] * (.85 + tower["level"] * .5))
-                rect = pygame.Rect(1018, 521, 105, 34)
-                self.action_rects["upgrade"] = rect
-                self.draw_button(rect, f"UPGRADE {cost}", disabled=self.gold < cost, tint="#e7c77f")
-            rect = pygame.Rect(1131, 521, 112, 34)
-            self.action_rects["sell"] = rect
-            value = math.floor(stats["cost"] * (.72 + tower["level"] * .25))
-            self.draw_button(rect, f"SELL {value}", tint="#f09a94")
-        else:
-            self.action_rects = {}
-            self.draw_text("Hold the line", 1018, 459, "medium")
-            self.draw_text("Shades follow the road.", 1018, 490, "small", "#a3aaa5")
-            self.draw_text("Place towers beside the path.", 1018, 512, "small", "#a3aaa5")
-        self.draw_text("QUICK BUILD  1  2  3  4", 1018, 579, "tiny", "#b3a77f")
-        self.draw_text("ESC cancels · SPACE starts wave", 1018, 600, "tiny", "#a3aaa5")
+        self.draw_text("Unopposed passage", 1018, 459, "medium")
+        self.draw_text("No towers are deployed.", 1018, 490, "small", "#a3aaa5")
+        self.draw_text("Enemies head straight for the gate.", 1018, 512, "small", "#a3aaa5")
+        self.draw_text("SPACE starts wave · P pauses", 1018, 600, "tiny", "#a3aaa5")
         self.draw_button(pygame.Rect(1018, 644, 226, 48), f"⚔  START WAVE {self.wave + 1}", disabled=self.game_state != "build", tint="#f0cf83")
         self.draw_text(self.message, 28, 724, "small", "#d5d1bc")
 
@@ -789,9 +687,9 @@ class LastLight:
         veil.fill((7, 12, 17, 190))
         self.screen.blit(veil, (0, 0))
         if self.game_state == "intro":
-            eyebrow, title, copy, button = "A DEFENSE GAME ABOUT HOLDING ON", "Last Light", "Four towers. A winding road. Legendary bosses every fifth wave.", "ENTER THE FIELD"
+            eyebrow, title, copy, button = "A RACE TO THE LAST GATE", "Last Light", "Watch enemy waves travel a winding road toward the gate.", "ENTER THE FIELD"
         elif self.game_state == "paused":
-            eyebrow, title, copy, button = "TAKE A BREATH", "Battle paused", "Your defenders are waiting. Pick up where you left off.", "RESUME DEFENSE"
+            eyebrow, title, copy, button = "TAKE A BREATH", "Battle paused", "The waves are paused. Resume to watch the enemies continue toward the gate.", "RESUME"
         else:
             eyebrow, title, copy, button = "THE GATE HAS FALLEN", "The night wins.", f"You reached wave {self.wave}. Defend the gate again.", "DEFEND AGAIN"
         self.draw_text(eyebrow, WIDTH // 2, 278, "small", "#c9b078", center=True)
@@ -817,7 +715,7 @@ class LastLight:
                 else:
                     self.reset_state()
                     self.game_state = "build"
-                    self.message = "Select a tower, then place it on the grass."
+                    self.message = "Enemies are unopposed. Start a wave to send them along the road."
             return
         if pygame.Rect(1058, 56, 90, 28).collidepoint(pos):
             self.wave_speed = 2 if self.wave_speed == 1 else 1
@@ -825,25 +723,9 @@ class LastLight:
         if pygame.Rect(1158, 56, 94, 28).collidepoint(pos):
             self.pause_toggle()
             return
-        for key, rect in self.tower_rects.items():
-            if rect.collidepoint(pos):
-                if self.gold >= TOWER_DATA[key]["cost"] or self.selected_type == key:
-                    self.selected_type = None if self.selected_type == key else key
-                    self.selected_tower = None
-                return
         if pygame.Rect(1018, 644, 226, 48).collidepoint(pos):
             self.start_wave()
             return
-        for action, rect in self.action_rects.items():
-            if rect.collidepoint(pos):
-                self.upgrade_tower() if action == "upgrade" else self.sell_tower()
-                return
-        if FIELD.collidepoint(pos):
-            if self.selected_type:
-                self.place_tower(*pos)
-            else:
-                tower = next((t for t in reversed(self.towers) if math.hypot(t["x"] - pos[0], t["y"] - pos[1]) <= 22), None)
-                self.selected_tower = tower
 
     def run(self):
         while self.running:
@@ -851,22 +733,13 @@ class LastLight:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-                elif event.type == pygame.MOUSEMOTION:
-                    self.mouse = event.pos
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     self.handle_click(event.pos)
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE and self.selected_type:
-                        self.selected_type = None
-                    elif event.key == pygame.K_SPACE and self.game_state == "build":
+                    if event.key == pygame.K_SPACE and self.game_state == "build":
                         self.start_wave()
                     elif event.key == pygame.K_p:
                         self.pause_toggle()
-                    elif pygame.K_1 <= event.key <= pygame.K_4 and self.game_state not in ("intro", "gameover"):
-                        key = list(TOWER_DATA)[event.key - pygame.K_1]
-                        if self.gold >= TOWER_DATA[key]["cost"] or self.selected_type == key:
-                            self.selected_type = None if self.selected_type == key else key
-                            self.selected_tower = None
             self.update(dt)
             self.draw_game()
             pygame.display.flip()
